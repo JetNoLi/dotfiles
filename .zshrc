@@ -20,7 +20,9 @@ source "${ZINIT_HOME}/zinit.zsh"
 . "$HOME/.cargo/env"
 
 # SET SHELL TO VIM MODE
-set -o vi
+# set -o vi
+# zinit ice depth=1
+zinit load jeffreytse/zsh-vi-mode
 export visual=nvim
 export EDITOR=nvim
 
@@ -64,6 +66,8 @@ autoload -Uz compinit && compinit
 
 eval "$(zoxide init zsh)"
 
-###TESTING
+## ALIASES
 alias vim="nvim"
+alias lz="lazygit"
+alias ld="lazydocker"
 

@@ -8,6 +8,9 @@ vim.keymap.set("n", "<leader>fe", "<CMD>NvimTreeToggle<CR>", { desc = "Toggle Nv
 
 return {
 	"nvim-tree/nvim-tree.lua",
+	dependencies = {
+		"nvim-web-devicons",
+	},
 	opts = {
 		hijack_netrw = false, -- Prevent nvim-tree from overriding netrw
 		update_focused_file = {
