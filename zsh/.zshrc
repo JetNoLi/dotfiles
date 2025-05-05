@@ -75,3 +75,6 @@ alias vim="nvim"
 alias lz="lazygit"
 alias ld="lazydocker"
 
+
+#Script Aliases
+alias s="~/.config/scripts/tmux/session.sh"
