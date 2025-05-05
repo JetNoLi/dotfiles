@@ -142,8 +142,6 @@ automatically-unhide-macos-hidden-apps = false
     alt-shift-semicolon = 'mode service'
 
     # Application Bindings
-    # alt-i = 'exec-and-forget open -n /Applications/iTerm.app/Contents/MacOS/ShellLauncher'
-    # alt-t = 'exec-and-forget open -n /Applications/Microsoft Teams.app/'
     alt-i = 'exec-and-forget open -a "iTerm"'
     alt-t = 'exec-and-forget open -a "Microsoft Teams"'
     alt-b = 'exec-and-forget open -a "Google Chrome"'
@@ -155,17 +153,6 @@ automatically-unhide-macos-hidden-apps = false
     alt-n = 'exec-and-forget open -a "Notion"'
     alt-v = 'exec-and-forget open -a "Visual Studio Code"'
     alt-u = 'exec-and-forget open -a "Figma"'
-    # Teams - t
-    # Browser - b
-    # Slack - Capital S
-    # Roam - r
-    # Postman - p
-    # Studio 3T - m (for mongo)
-    # Mail - e for email
-    # Notes/Notion - n
-    # VS Code - v
-    # Figma - u for UI
-
 
 
 [workspace-to-monitor-force-assignment]
@@ -196,3 +183,14 @@ automatically-unhide-macos-hidden-apps = false
     down = 'volume down'
     up = 'volume up'
     shift-down = ['volume set 0', 'mode main']
+
+
+
+# ON DETECT EVENTS
+[[on-window-detected]]
+    if.app-id = "com.macpaw.CleanMyMac5"
+    run = "layout floating"
+
+[[on-window-detected]]
+    if.app-id = "com.macpaw.CleanMyMac5.Menu"
+    run = "layout floating"
