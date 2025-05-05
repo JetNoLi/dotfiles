@@ -7,6 +7,7 @@ local htmxConfig = require("plugins.lsp.config.htmx")
 local emmetConfig = require("plugins.lsp.config.emmet")
 local templConfig = require("plugins.lsp.config.go-templ")
 local prettierConfig = require("plugins.lsp.config.prettier")
+local bashConfig = require("plugins.lsp.config.bash")
 
 -- LSP Plugins
 local config = {
@@ -197,6 +198,7 @@ local config = {
 			prettier = prettierConfig,
 			ts_ls = tsConfig,
 			lua_ls = luaConfig,
+			bashls = bashConfig,
 		}
 
 		-- Ensure the servers and tools above are installed
