@@ -34,5 +34,6 @@ if tmux has-session -t "$session_name" 2>/dev/null; then
   tmux attach -t "$session_name"
 else
   echo "Session '$session_name' does not exist. Creating..."
+  cd "$session_folder"
   tmux new -s "$session_name"
 fi
