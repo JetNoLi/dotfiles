@@ -1,5 +1,4 @@
-local config = 
-{ -- Fuzzy Finder (files, lsp, etc)
+local config = { -- Fuzzy Finder (files, lsp, etc)
 	"nvim-telescope/telescope.nvim",
 	event = "VimEnter",
 	dependencies = {
@@ -53,7 +52,12 @@ local config =
 			--     i = { ['<c-enter>'] = 'to_fuzzy_refine' },
 			--   },
 			-- },
-			-- pickers = {}
+			pickers = {
+				find_files = {
+					hidden = true,
+					find_command = { "fd", "--type", "f", "--hidden", "--exclude", ".git" },
+				},
+			},
 			extensions = {
 				["ui-select"] = {
 					require("telescope.themes").get_dropdown(),

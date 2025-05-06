@@ -43,13 +43,14 @@ source <(fzf --zsh)
 export FZF_DEFAULT_COMMAND='
   fd --type f --hidden \
      --exclude .git \
-     --exclude "Library" .
+     --exclude node_modules \
+     --exclude "Library" . \
      --include .config/*
 '
 export FZF_ALT_C_COMMAND='
   fd --type d --hidden \
      --exclude .git \
-     --exclude "Library" .
+     --exclude "Library" . \
      --include .config/*
 '
 
