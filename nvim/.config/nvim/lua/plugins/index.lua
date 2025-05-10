@@ -7,13 +7,13 @@ local autoCompleteConfig = require("plugins.config.autocomplete")
 local oilConfig = require("plugins.config.oil")
 local goModifyTagsConfig = require("plugins.config.gomodifytags")
 local nullLsConfig = require("plugins.config.null")
-local goIfErrConfig = require("plugins.config.go-iferr")
 local markdownConfig = require("plugins.config.render-markdown")
 local nvimTreeConfig = require("plugins.config.nvim-tree")
 local mintyConfig = require("plugins.config.minty")
 local colorHighlightConfig = require("plugins.config.nvim-highlight-colors")
 local autoPairs = require("plugins.config.autopairs")
 local autoList = require("plugins.config.autolist")
+local snippets = require("plugins.config.snippets")
 
 -- [[ Install `lazy.nvim` plugin manager ]]
 --    See `:help lazy.nvim.txt` or https://github.com/folke/lazy.nvim for more info
@@ -41,11 +41,11 @@ require("lazy").setup({
 	colorHighlightConfig,
 	oilConfig,
 	nullLsConfig,
-	goIfErrConfig,
 	markdownConfig,
 	nvimTreeConfig,
 	mintyConfig,
-	-- autoPairs,
+	snippets,
+	autoPairs,
 	-- Tmux Plugins
 	{
 		"christoomey/vim-tmux-navigator",

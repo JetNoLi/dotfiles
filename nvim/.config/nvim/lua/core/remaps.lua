@@ -34,22 +34,3 @@ vim.keymap.set("n", "<C-k>", "<C-w><C-k>", { desc = "Move focus to the upper win
 --
 
 vim.keymap.set("n", "<leader>gsj", "<Cmd> GoAddTags json <CR>")
-
-local ifErr = function(msg) end
-
-vim.keymap.set({ "n", "i" }, "<leader>ier", function()
-	-- 2. Shell out to the IfErr ftplugin via vim.cmd()
-	--    vim.cmd() runs any Ex-command from Lua :contentReference[oaicite:3]{index=3}
-	vim.cmd("IfErr")
-
-	-- 3. Locate the inserted 'return' at its end (lnum, col)
-	--    searchpos() returns {lnum, col} when using the 'e' flag :contentReference[oaicite:4]{index=4}
-	local pos = vim.fn.searchpos("return", "e")
-
-	-- 4. If found (pos[1] > 0), move the cursor there:
-	--    nvim_win_set_cursor(win, {row, col})
-	--    Note: Lua is 0-indexed for columns, so subtract 1 :contentReference[oaicite:5]{index=5}
-	if pos[1] > 0 then
-		vim.api.nvim_win_set_cursor(0, { pos[1], pos[2] - 1 })
-	end
-end)
