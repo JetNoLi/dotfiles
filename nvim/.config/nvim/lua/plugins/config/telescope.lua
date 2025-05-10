@@ -52,10 +52,26 @@ local config = { -- Fuzzy Finder (files, lsp, etc)
 			--     i = { ['<c-enter>'] = 'to_fuzzy_refine' },
 			--   },
 			-- },
-			pickers = {
-				find_files = {
-					hidden = true,
-					find_command = { "fd", "--type", "f", "--hidden", "--exclude", ".git" },
+			defaults = {
+				hidden = true,
+
+				vimgrep_arguments = {
+					"rg",
+					"--color=never",
+					"--no-heading",
+					"--with-filename",
+					"--line-number",
+					"--column",
+					"--smart-case",
+					"--hidden",
+					"--glob",
+					"!.git/*",
+				},
+				pickers = {
+					find_files = {
+						hidden = true,
+						find_command = { "fd", "--type", "f", "--hidden", "--exclude", ".git" },
+					},
 				},
 			},
 			extensions = {
@@ -73,7 +89,22 @@ local config = { -- Fuzzy Finder (files, lsp, etc)
 		local builtin = require("telescope.builtin")
 		vim.keymap.set("n", "<leader>sh", builtin.help_tags, { desc = "[S]earch [H]elp" })
 		vim.keymap.set("n", "<leader>sk", builtin.keymaps, { desc = "[S]earch [K]eymaps" })
-		vim.keymap.set("n", "<leader>sf", builtin.find_files, { desc = "[S]earch [F]iles" })
+		-- vim.keymap.set("n", "<leader>sf", builtin.find_files, { desc = "[S]earch [F]iles" })
+		vim.keymap.set("n", "<leader>sd", function()
+			require("telescope.builtin").find_files({
+				prompt_title = "Dotfiles",
+				cwd = vim.fn.expand("~/.config"),
+				hidden = true,
+			})
+		end, { desc = "[S]earch [D]otfiles" })
+		vim.keymap.set("n", "<leader>sf", function()
+			require("telescope.builtin").find_files({
+				hidden = true,
+				no_ignore = true,
+				follow = true,
+			})
+		end, { desc = "[S]earch [F]iles (including hidden)" })
+
 		vim.keymap.set("n", "<leader>ss", builtin.builtin, { desc = "[S]earch [S]elect Telescope" })
 		vim.keymap.set("n", "<leader>sw", builtin.grep_string, { desc = "[S]earch current [W]ord" })
 		vim.keymap.set("n", "<leader>sg", builtin.live_grep, { desc = "[S]earch by [G]rep" })

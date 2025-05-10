@@ -13,6 +13,7 @@ local nvimTreeConfig = require("plugins.config.nvim-tree")
 local mintyConfig = require("plugins.config.minty")
 local colorHighlightConfig = require("plugins.config.nvim-highlight-colors")
 local autoPairs = require("plugins.config.autopairs")
+local autoList = require("plugins.config.autolist")
 
 -- [[ Install `lazy.nvim` plugin manager ]]
 --    See `:help lazy.nvim.txt` or https://github.com/folke/lazy.nvim for more info
@@ -44,7 +45,7 @@ require("lazy").setup({
 	markdownConfig,
 	nvimTreeConfig,
 	mintyConfig,
-	autoPairs,
+	-- autoPairs,
 	-- Tmux Plugins
 	{
 		"christoomey/vim-tmux-navigator",
@@ -224,6 +225,7 @@ require("lazy").setup({
 		--    - Show your current context: https://github.com/nvim-treesitter/nvim-treesitter-context
 		--    - Treesitter + textobjects: https://github.com/nvim-treesitter/nvim-treesitter-textobjects
 	},
+	autoList,
 
 	-- The following comments only work if you have downloaded the kickstart repo, not just copy pasted the
 	-- init.lua. If you want these files, they are in the repository, so you can just download them and

@@ -8,4 +8,7 @@ return {
 	opts = {
 		completions = { blink = { enabled = true } },
 	},
+	config = function()
+		require("render-markdown").enable()
+	end,
 }
