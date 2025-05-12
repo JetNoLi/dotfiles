@@ -4,6 +4,7 @@ vim.g.maplocalleader = " "
 require("core.remaps")
 require("core.autocommands")
 
+vim.opt.encoding = "utf-8"
 vim.opt.clipboard = "unnamedplus"
 if vim.env.TMUX then
 	-- Override both registers: "*"→tmux, "+"→system
@@ -23,8 +24,23 @@ end
 
 vim.g.have_nerd_font = true
 
--- See `:help vim.opt`
--- For more options, you can see `:help option-list`
+vim.opt.foldmethod = "expr"
+vim.opt.foldexpr = "v:lua.vim.treesitter.foldexpr()"
+
+vim.opt.fillchars = { fold = " ", foldopen = "▼", foldclose = "▶" }
+
+vim.opt.foldenable = false
+vim.opt.foldcolumn = "2"
+vim.opt.foldenable = false
+vim.opt.foldlevelstart = 99
+vim.opt.foldtext = ""
+
+vim.api.nvim_create_autocmd("ColorScheme", {
+	pattern = "*",
+	callback = function()
+		vim.api.nvim_set_hl(0, "Folded", { link = "Normal" })
+	end,
+})
 
 vim.opt.tabstop = 4
 vim.opt.shiftwidth = 4

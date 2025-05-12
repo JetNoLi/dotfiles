@@ -1,6 +1,6 @@
 local config = { -- Autocompletion
 	"saghen/blink.cmp",
-	event = "VimEnter",
+	event = { "InsertEnter", "CmdlineEnter" },
 	version = "1.*",
 	dependencies = {
 		-- Snippet Engine
@@ -34,6 +34,14 @@ local config = { -- Autocompletion
 	--- @module 'blink.cmp'
 	--- @type blink.cmp.Config
 	opts = {
+		cmdline = {
+			enabled = true, -- ← turn it on
+			-- optional: inherit your normal blink keymaps in cmdline
+			keymap = { preset = "inherit" },
+			-- optional: automatically pop the menu as soon as you type `:`-arguments
+			completion = { menu = { auto_show = false } },
+		},
+
 		keymap = {
 			-- 'default' (recommended) for mappings similar to built-in completions
 			--   <c-y> to accept ([y]es) the completion.
@@ -79,10 +87,12 @@ local config = { -- Autocompletion
 		},
 
 		completion = {
+
 			-- By default, you may press `<c-space>` to show the documentation.
 			-- Optionally, set `auto_show = true` to show the documentation after a delay.
-			documentation = { auto_show = false, auto_show_delay_ms = 500 },
+			documentation = { auto_show = true, auto_show_delay_ms = 500 },
 			menu = {
+				auto_show = true,
 				draw = {
 					components = {
 						-- customize the drawing of kind icons
@@ -129,7 +139,6 @@ local config = { -- Autocompletion
 				lazydev = { module = "lazydev.integrations.blink", score_offset = 100 },
 			},
 		},
-
 		snippets = { preset = "luasnip" },
 
 		-- Blink.cmp includes an optional, recommended rust fuzzy matcher,

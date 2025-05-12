@@ -1,9 +1,7 @@
--- Comment Like VS
-local config = {
+return {
 	"numToStr/Comment.nvim",
-	config = function()
-		require("Comment").setup()
-	end,
+	opts = {},
+	config = true,
 	keys = {
 		{ "gc", mode = { "n", "v" }, desc = "Toggle comment" },
 		{
@@ -16,5 +14,3 @@ local config = {
 		},
 	},
 }
-
-return config

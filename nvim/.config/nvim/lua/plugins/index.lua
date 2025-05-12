@@ -8,6 +8,7 @@ local oilConfig = require("plugins.config.oil")
 local goModifyTagsConfig = require("plugins.config.gomodifytags")
 local nullLsConfig = require("plugins.config.null")
 local markdownConfig = require("plugins.config.render-markdown")
+local markview = require("plugins.config.markview")
 local nvimTreeConfig = require("plugins.config.nvim-tree")
 local mintyConfig = require("plugins.config.minty")
 local colorHighlightConfig = require("plugins.config.nvim-highlight-colors")
@@ -41,11 +42,38 @@ require("lazy").setup({
 	colorHighlightConfig,
 	oilConfig,
 	nullLsConfig,
-	markdownConfig,
+	-- markdownConfig,
+	markview,
 	nvimTreeConfig,
 	mintyConfig,
 	snippets,
 	autoPairs,
+	autoList,
+	-- {
+	-- 	"kevinhwang91/nvim-ufo",
+	-- 	dependencies = "kevinhwang91/promise-async",
+	-- 	provider_selector = function(bufnr, filetype, buftype)
+	-- 		-- return a table with string elements: 1st is name of main provider, 2nd is fallback
+	-- 		-- return a string type: use ufo inner providers
+	-- 		-- return a string in a table: like a string type above
+	-- 		-- return empty string '': disable any providers
+	-- 		-- return `nil`: use default value {'lsp', 'indent'}
+	-- 		-- return a function: it will be involved and expected return `UfoFoldingRange[]|Promise`
+	--
+	-- 		-- return ftMap[filetype]
+	-- 		return { "treesitter", "indent" }
+	-- 	end,
+	-- 	fold_virt_text_handler = function(virtText, lnum, endLnum, width, truncate)
+	-- 		-- customize preview text here
+	-- 		return virtText
+	-- 	end,
+	-- 	config = function()
+	-- 		vim.keymap.set("n", "zR", require("ufo").openAllFolds)
+	-- 		vim.keymap.set("n", "zM", require("ufo").closeAllFolds)
+	-- 	end,
+	-- },
+	--
+	-- Using ufo provider need remap `zR` and `zM`. If Neovim is 0.6.1, remap yourself
 	-- Tmux Plugins
 	{
 		"christoomey/vim-tmux-navigator",
@@ -214,7 +242,7 @@ require("lazy").setup({
 				-- Some languages depend on vim's regex highlighting system (such as Ruby) for indent rules.
 				--  If you are experiencing weird indenting issues, add the language to
 				--  the list of additional_vim_regex_highlighting and disabled languages for indent.
-				additional_vim_regex_highlighting = { "ruby" },
+				additional_vim_regex_highlighting = false, --{ "ruby" },
 			},
 			indent = { enable = true, disable = { "ruby" } },
 		},
@@ -225,8 +253,6 @@ require("lazy").setup({
 		--    - Show your current context: https://github.com/nvim-treesitter/nvim-treesitter-context
 		--    - Treesitter + textobjects: https://github.com/nvim-treesitter/nvim-treesitter-textobjects
 	},
-	autoList,
-
 	-- The following comments only work if you have downloaded the kickstart repo, not just copy pasted the
 	-- init.lua. If you want these files, they are in the repository, so you can just download them and
 	-- place them in the correct locations.

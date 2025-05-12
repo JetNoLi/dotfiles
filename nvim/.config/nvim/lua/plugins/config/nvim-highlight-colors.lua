@@ -1,5 +1,6 @@
 return {
 	"brenoprata10/nvim-highlight-colors",
+	config = true,
 	opts = {
 		---Render style
 		---@usage 'background'|'foreground'|'virtual'

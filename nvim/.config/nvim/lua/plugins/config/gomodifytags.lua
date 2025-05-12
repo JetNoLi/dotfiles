@@ -5,6 +5,7 @@ end, { nargs = "+" })
 return {
 	"simondrake/gomodifytags",
 	dependencies = { "nvim-treesitter/nvim-treesitter" },
+	config = true,
 	opts = {
 		transformation = "camelcase",
 		skip_unexported = true,

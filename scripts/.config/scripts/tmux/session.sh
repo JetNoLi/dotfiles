@@ -5,7 +5,7 @@
  
 additional_dirs=(
   "$HOME/dotfiles"
-  "$HOME/Desktop/Notes/"
+  "$HOME/Desktop/Notes"
 )
  session_folder=$( (printf "%s\n" "${additional_dirs[@]}"; fd --type d --prune -g -H '.git' ~/Desktop -X dirname) | fzf --query="$1" --select-1)
  session_name="${session_folder##*/}"

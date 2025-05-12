@@ -11,6 +11,7 @@ return {
 	dependencies = {
 		"nvim-web-devicons",
 	},
+	config = true,
 	opts = {
 		hijack_netrw = false, -- Prevent nvim-tree from overriding netrw
 		update_focused_file = {
