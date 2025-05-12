@@ -39,7 +39,7 @@ local config = { -- Autocompletion
 			-- optional: inherit your normal blink keymaps in cmdline
 			keymap = { preset = "inherit" },
 			-- optional: automatically pop the menu as soon as you type `:`-arguments
-			completion = { menu = { auto_show = false } },
+			completion = { menu = { auto_show = true } },
 		},
 
 		keymap = {
