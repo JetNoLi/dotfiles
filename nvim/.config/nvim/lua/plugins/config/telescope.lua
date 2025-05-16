@@ -54,7 +54,10 @@ local config = { -- Fuzzy Finder (files, lsp, etc)
 			-- },
 			defaults = {
 				hidden = true,
-
+				file_ignore_patterns = {
+					"^node_modules/",
+					"^.git/",
+				},
 				vimgrep_arguments = {
 					"rg",
 					"--color=never",
