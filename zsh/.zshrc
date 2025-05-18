@@ -76,6 +76,7 @@ alias vim="nvim"
 alias lz="lazygit"
 alias ld="lazydocker"
 
-
 #Script Aliases
 alias s="~/.config/scripts/tmux/session.sh"
+alias N="~/.config/scripts/tmux/notes.sh"
+alias n="~/Desktop/Projects/go-notes/notes.exe"

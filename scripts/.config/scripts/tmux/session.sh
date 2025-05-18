@@ -19,7 +19,6 @@ if [[ -z "$session_name" ]]; then
   exit 1
 fi
 
-
 if [ -n "$TMUX" ]; then
   if tmux has-session -t "$session_name" 2>/dev/null; then
     echo "Session '$session_name' exists. Attaching..."
@@ -38,7 +37,5 @@ if tmux has-session -t "$session_name" 2>/dev/null; then
   tmux attach -t "$session_name"
 else
   echo "Session '$session_name' does not exist. Creating..."
-  cd "$session_folder"
   tmux new -s "$session_name" -c "$session_folder"
-
 fi
