@@ -20,21 +20,21 @@ if [[ -z "$session_name" ]]; then
 fi
 
 if [ -n "$TMUX" ]; then
-  if tmux has-session -t "$session_name" 2>/dev/null; then
+  if tmux has-session -t "=$session_name" 2>/dev/null; then
     echo "Session '$session_name' exists. Attaching..."
-    tmux switch-client -t "$session_name"
+    tmux switch-client -t "=$session_name"
   else
     echo "Session '$session_name' does not exist. Creating..."
     tmux new-session -d -s "$session_name" -c "$session_folder"
-    tmux switch-client -t "$session_name"
+    tmux switch-client -t "=$session_name"
   fi
   exit 1
 fi
 
 # Check if the session exists
-if tmux has-session -t "$session_name" 2>/dev/null; then
+if tmux has-session -t "=$session_name" 2>/dev/null; then
   echo "Session '$session_name' exists. Attaching..."
-  tmux attach -t "$session_name"
+  tmux attach -t "=$session_name"
 else
   echo "Session '$session_name' does not exist. Creating..."
   tmux new -s "$session_name" -c "$session_folder"

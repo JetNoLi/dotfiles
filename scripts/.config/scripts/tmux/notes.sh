@@ -46,30 +46,30 @@ if [[ -z "$session_name" ]]; then
 fi
 
 if [ -n "$TMUX" ]; then
-  if tmux has-session -t "$session_name" 2>/dev/null; then
+  if tmux has-session -t "=$session_name" 2>/dev/null; then
     echo "Session '$session_name' exists. Attaching..."
-    tmux switch-client -t "$session_name"
+    tmux switch-client -t "=$session_name"
     # after attaching, send nvim:
     tmux send-keys -t "$session_name" "nvim $NOTE_PATH" C-m
   else
     echo "Session '$session_name' does not exist. Creating..."
     tmux new-session -d -s "$session_name" -c "$DAILY_NOTE_DIR"
-    tmux switch-client -t "$session_name"
+    tmux switch-client -t "=$session_name"
     # after attaching, send nvim:
-    tmux send-keys -t "$session_name" "nvim $NOTE_PATH" C-m
+    tmux send-keys -t "=$session_name" "nvim $NOTE_PATH" C-m
   fi
   exit 1
 fi
 
 # Check if the session exists
-if tmux has-session -t "$session_name" 2>/dev/null; then
+if tmux has-session -t "=$session_name" 2>/dev/null; then
   echo "Session '$session_name' exists. Attaching..."
-  tmux attach -t "$session_name"
+  tmux attach -t "=$session_name"
   # after attaching, send nvim:
-  tmux send-keys -t "$session_name" "nvim $NOTE_PATH" C-m
+  tmux send-keys -t "=$session_name" "nvim $NOTE_PATH" C-m
 else
   echo "Session '$session_name' does not exist. Creating..."
   tmux new -s "$session_name" -c "$DAILY_NOTE_DIR"
   # after attaching, send nvim:
-  tmux send-keys -t "$session_name" "nvim $NOTE_PATH" C-m
+  tmux send-keys -t "=$session_name" "nvim $NOTE_PATH" C-m
 fi
