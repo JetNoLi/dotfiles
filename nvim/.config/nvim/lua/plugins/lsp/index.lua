@@ -9,6 +9,15 @@ local templConfig = require("plugins.lsp.config.go-templ")
 local prettierConfig = require("plugins.lsp.config.prettier")
 local bashConfig = require("plugins.lsp.config.bash")
 
+local eslintConfig = {
+	on_attach = function(client, bufnr)
+		-- You can add eslint-specific keymaps or rely on the general ones from LspAttach
+	end,
+	settings = {
+		-- You can customize eslint settings here if needed
+	},
+}
+
 -- LSP Plugins
 local config = {
 	-- Main LSP Configuration
@@ -80,6 +89,9 @@ local config = {
 				--  Useful when you're not sure what type a variable is and you want to see
 				--  the definition of its *type*, not where it was *defined*.
 				map("grt", require("telescope.builtin").lsp_type_definitions, "[G]oto [T]ype Definition")
+				-- map("K", vim.lsp.buf.hover, "Hover Documentation")
+
+				vim.keymap.set("n", "K", vim.lsp.buf.hover, { buffer = bufnr, desc = "Hover Symbol" })
 
 				-- This function resolves a difference between neovim nightly (version 0.11) and stable (version 0.10)
 				---@param client vim.lsp.Client
@@ -190,6 +202,7 @@ local config = {
 		--  - settings (table): Override the default settings passed when initializing the server.
 		--        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
 		local servers = {
+			eslint = eslintConfig,
 			clangd = clangDConfig,
 			templ = templConfig,
 			emmet_language_server = emmetConfig,
@@ -201,6 +214,39 @@ local config = {
 			lua_ls = luaConfig,
 			bashls = bashConfig,
 		}
+
+		local mason_package_map = {
+			ts_ls = "typescript-language-server",
+			eslint = "eslint-lsp",
+			clangd = "clangd",
+			lua_ls = "lua-language-server",
+			bashls = "bash-language-server",
+			prettier = "prettier",
+			gopls = "gopls",
+			templ = "templ", -- replace with actual Mason package if exists
+			emmet_language_server = "emmet-ls", -- adjust as needed
+			html = "html-lsp",
+			htmx = "htmx", -- check if this exists or skip if custom
+		}
+
+		local ensure_installed = {}
+		for server_key, _ in pairs(servers) do
+			local pkg_name = mason_package_map[server_key]
+			if pkg_name then
+				table.insert(ensure_installed, pkg_name)
+			else
+				print("Warning: No Mason package mapping for LSP server: " .. server_key)
+			end
+		end
+
+		vim.list_extend(ensure_installed, {
+			"stylua",
+			"gomodifytags",
+		})
+
+		require("mason-tool-installer").setup({
+			ensure_installed = ensure_installed,
+		})
 
 		-- Ensure the servers and tools above are installed
 		--
@@ -215,7 +261,6 @@ local config = {
 		--
 		-- You can add other tools here that you want Mason to install
 		-- for you, so that they are available from within Neovim.
-		local ensure_installed = vim.tbl_keys(servers or {})
 		vim.list_extend(ensure_installed, {
 			"stylua", -- Used to format Lua code
 			"gomodifytags",

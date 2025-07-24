@@ -27,7 +27,7 @@ return {
 					},
 					prefer_local = "node_modules/.bin", -- use project's Prettier if available
 				}),
-				-- require("none-ls.diagnostics.eslint"), -- requires none-ls-extras.nvim
+				require("none-ls.diagnostics.eslint"), -- requires none-ls-extras.nvim
 			},
 		})
 	end,

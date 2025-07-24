@@ -8,7 +8,7 @@ return {
 	config = true,
 	opts = {
 		transformation = "camelcase",
-		skip_unexported = true,
+		-- skip_unexported = true,
 		override = true,
 		options = { "json=omitempty" },
 		-- parse = { enabled = true, seperator = "--" },
