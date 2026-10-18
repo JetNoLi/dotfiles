@@ -39,9 +39,9 @@ font-family = JetBrainsMono Nerd Font
 font-size = 16
 cursor-style = block
 
-# Let programs read/write the system clipboard via OSC52 — pairs with tmux's
-# set-clipboard on.
-clipboard-read = allow
+# Let programs write the system clipboard via OSC52 — pairs with tmux's
+# set-clipboard on. Reads stay at the default (ask) so nothing in the terminal
+# can read the clipboard without a prompt.
 clipboard-write = allow
 
 # macos-option-as-alt is left at its default on purpose: iTerm sent normal
