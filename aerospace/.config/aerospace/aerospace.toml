@@ -142,7 +142,7 @@ automatically-unhide-macos-hidden-apps = false
     alt-shift-semicolon = 'mode service'
 
     # Application Bindings
-    alt-i = 'exec-and-forget open -a "iTerm"'
+    alt-i = 'exec-and-forget open -a "Ghostty"'
     alt-t = 'exec-and-forget open -a "Microsoft Teams"'
     alt-b = 'exec-and-forget open -a "Google Chrome"'
     alt-c = 'exec-and-forget open -a "Slack"'
