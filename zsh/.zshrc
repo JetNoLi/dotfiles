@@ -3,6 +3,9 @@ ZINIT_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}/zinit/zinit.git"
 #. export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-~/.config}"
 export XDG_CONFIG_HOME="$HOME/.config"
 
+# Claude Code: stop it capturing the mouse so the wheel scrolls tmux, not the transcript
+export CLAUDE_CODE_DISABLE_MOUSE=1
+
 export PATH=$PATH:$(go env GOPATH)/bin
 
 # Download Zinit, if it's not there yet
