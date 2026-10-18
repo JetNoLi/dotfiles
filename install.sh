@@ -5,7 +5,8 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 # Homebrew refuses to build/install until the Xcode license is accepted.
-if ! xcodebuild -license check >/dev/null 2>&1; then
+# Only full Xcode has a license; with just Command Line Tools there's nothing to accept.
+if [[ "$(xcode-select -p 2>/dev/null)" == *Xcode.app* ]] && ! xcodebuild -license check >/dev/null 2>&1; then
   echo "Xcode license not accepted. Run this, then re-run ./install.sh:" >&2
   echo "  sudo xcodebuild -license accept" >&2
   exit 1
