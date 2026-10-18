@@ -1,0 +1,13 @@
+[push]
+	autoSetupRemote = true
+# HTTPS credentials come from gh. The empty helper line resets any helper set
+# in a lower config (Homebrew git's system osxkeychain) for these hosts.
+[credential "https://github.com"]
+	helper =
+	helper = !gh auth git-credential
+[credential "https://gist.github.com"]
+	helper =
+	helper = !gh auth git-credential
+# Identity (user.name / user.email) lives here, untracked. Last so it wins.
+[include]
+	path = ~/.gitconfig.local
