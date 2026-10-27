@@ -13,7 +13,7 @@ execution: code
 ## Goal Capsule
 
 - **Objective:** On the Mac, Jet can see every Claude agent and task in one place, tell which ones need them, and jump to, start, resume or close any of them from the keyboard. Each place where the Mac build does something differently from wb ends with a written verdict the later dotfiles migration can use.
-- **Means:** Carve the wb picker and `wb new` out of the work dotfiles repo into this repo as a Mac-first module, with status from Claude Code's session registry in place of pane scraping (KTD2, KTD3).
+- **Means:** Carve the wb picker and `wb new` out of the work dotfiles repo into this repo as a Mac-first module, with status from Claude Code's session registry first and pane scraping as the fallback (KTD2, KTD3).
 - **Product authority:** Jet. This plan covers only the Mac picker. Automatic checkpoints, cross-session messaging and family coordinators, realms, and the full migration of the work repo are surrounding areas, not active scope. The wider direction is in `docs/roadmap.md`.
 - **Open blockers:** None.
 - **Stop conditions:** Stop and ask before any change to the Ubuntu machine or the work repo, before committing anything that fails the R17 boundary scan, or if Claude Code's session registry has gone away and neither fallback in KTD3 works.
@@ -106,7 +106,7 @@ Product Contract preservation: changed R2, R3, R4 and R12. R2 and R3 now track t
 ### Acceptance Examples
 
 - AE1. **Covers R4.** **Given** an agent in a tmux pane is waiting on a permission prompt, **when** the picker refreshes, **then** its row is bold magenta ("needs you"), based on Claude's session data and not on the pane text.
-- AE2. **Covers R5.** **Given** the session registry is empty or unreadable and `claude agents --json` fails, **when** the picker opens, **then** rows still appear with colours from pane detection.
+- AE2. **Covers R5.** **Given** the session registry is empty or unreadable and `claude agents --json --all` fails, **when** the picker opens, **then** rows still appear with colours from pane detection.
 - AE3. **Covers R6.** **Given** an agent has an nvim decision buffer open, **when** the picker refreshes, **then** the row shows "needs you" even though Claude reports the session as idle.
 - AE4. **Covers R7, R8, R11.** **Given** `wb new --bg fix-thing` was run in `~/dotfiles`, **when** the picker opens, **then** a background row appears for `dotfiles--fix-thing`, and `Enter` on it opens a tmux window attached to that session.
 - AE5. **Covers R7.** **Given** a Claude session is running in the desktop app, **when** the picker opens, **then** it isn't listed.
@@ -167,6 +167,9 @@ This plan covers the Mac picker. The breakdown below is the current understandin
 - Do background sessions appear in the registry, and with which `kind` and `tmux` values? This decides whether KTD3's `claude agents --json` step is needed for background rows.
 - Do background sessions inherit `TMUX_PANE` from the pane that started them? If they do, the notify hook would mark the wrong pane; the hook then needs to check the registry before writing (U3).
 - Which `status` values does the registry use beyond `busy`, `idle` and `waiting` (failed, stopped, completed)? Unknown values map to idle until seen.
+- Does the registry ever report `waiting`? On 2026-10-27 the live files showed only `busy` and `idle`. If a permission prompt doesn't show as `waiting`, "needs you" (AE1) relies on the notify hook's `needs-input` marker, and AE1 changes to match.
+- Does `claude --bg -n <name>` start without a prompt? If it needs one, `wb new --bg` supplies a short opening prompt and the U5 fakes change to match.
+- Does `claude agents --json --all` stay well under its 2-second watchdog? If it often times out, it runs outside the 3-second LIVE refresh and its last result is reused.
 
 ---
 
@@ -174,12 +177,12 @@ This plan covers the Mac picker. The breakdown below is the current understandin
 
 ### Key Technical Decisions
 
-- KTD1. **Require Homebrew bash 5; don't rewrite for bash 3.2.** wb uses namerefs, `local -A` and `mapfile`, and empty-array expansion under `set -u` crashes on 3.2, so a 3.2 port would rewrite most reached functions. The entry point checks `BASH_VERSINFO` and exits with an install hint below 4.4. `install.sh` installs `bash`. Scripts use `#!/usr/bin/env bash`, which resolves to Homebrew's bash because tmux runs commands through the login shell's `PATH`.
+- KTD1. **Require Homebrew bash 5; don't rewrite for bash 3.2.** wb uses namerefs, `local -A` and `mapfile`, and empty-array expansion under `set -u` crashes on 3.2, so a 3.2 port would rewrite most reached functions. The entry point checks `BASH_VERSINFO` and exits with an install hint below 5 (4.4 is the floor for the empty-array fix; 5 is what gets installed and tested). `install.sh` installs `bash`. Scripts use `#!/usr/bin/env bash`, which resolves to Homebrew's bash because tmux runs commands through the login shell's `PATH`.
 - KTD2. **Copy the reached functions from the work repo at `481d6ed` into new files, then fix them.** The research mapped the reached set to about 84 functions in `wb.sh` plus helpers in `lib.sh`, `wb-locks.sh` and `claude-card.sh`. Nothing sources `wb-board.sh`, `wb-lifecycle.sh`, `wb-capture.sh` or the full `wb-locks.sh`. Linux-only calls get shims that also run on Linux where that costs nothing. Instantiates the carve-out Key Decision. Governs R16, R17.
-- KTD3. **Status source order: session registry, then `claude agents --json` for background sessions the registry can't place, then pane scraping.** The registry gives the pane id directly, costs only file reads, and is already what wb trusts for the card and family names. A registry entry counts only while its pid is alive with the same `procStart`. `claude agents --json` runs at most once per refresh, under a 2-second watchdog. Pane scraping keys on the process tree, not `pane_current_command`, because of the version-string finding. Governs R4, R5, R7.
+- KTD3. **Status source order: session registry, then `claude agents --json --all` for background sessions the registry can't place, then pane scraping.** The registry gives the pane id directly, costs only file reads, and is already what wb trusts for the card and family names. A registry entry counts only while its pid is alive with the same `procStart`. The registry stores `procStart` in UTC and C-locale form (`Sun Oct 25 17:48:10 2026`), so the check compares it against `TZ=UTC LC_ALL=C ps -o lstart= -p <pid>` through a compat helper; plain `ps` prints local time and never matches. `claude agents --json --all` runs at most once per refresh, under a 2-second watchdog. Pane scraping keys on the process tree, not `pane_current_command`, because of the version-string finding. Governs R4, R5, R7.
 - KTD4. **Lock task records with `mkdir`, not `flock`.** `mkdir` is atomic on macOS and Linux. The lock directory holds the holder's pid, and a lock whose pid is dead is taken over. This keeps R10's two-writer protection without `flock`.
-- KTD5. **Resolve repos by name across configured roots, and store the full path on the task.** Roots default to `~/dotfiles`, `~/Desktop` and `~/Desktop/Projects`, overridable through `WB_REPO_ROOTS`. `wb new` writes a `repo_path:` frontmatter field. Readers use that field first, and fall back to the resolver for records that lack it, as Ubuntu records do. Two repos with the same basename are refused at `wb new` with both paths printed. Governs R12, R13.
-- KTD6. **Background sessions are identified by session id.** `wb new --bg` starts `claude --bg -n <session-name>` in the worktree and records the returned session id in the task's `claude_sessions:` as `@primary`. Rows are matched by session id, then by real-path `cwd` compared case-insensitively. Rows are deduplicated by session id, so an attached session shows once. `Enter` attaches by id, and jumps to the existing attach window when one is open. A session Claude auto-stopped after an hour of idling still shows as a LIVE idle row while it's listed; a failed or stopped one moves to DORMANT. `wb down` and `wb done` stop the background session by id before removing anything (R18). Governs R7, R8, R11, R18.
+- KTD5. **Resolve repos by name across configured roots, and store the full path on the task.** Repos are found the way `session.sh` finds them: `~/dotfiles`, plus every repo a recursive `.git` search (pruned at each repo) finds under `~/Desktop`, which covers `~/Desktop/Projects` and repos nested below it. The search roots are overridable through `WB_REPO_ROOTS`. `wb new` writes a `repo_path:` frontmatter field. Readers use that field first, and fall back to the resolver for records that lack it, as Ubuntu records do. Two repos with the same basename are refused at `wb new` with both paths printed. Governs R12, R13.
+- KTD6. **Background sessions are identified by session id.** `wb new --bg` starts `claude --bg -n <session-name>` in the worktree. That prints a short id, so `wb new` looks up the session's full `sessionId` UUID (matched on the short id or name) and records that in the task's `claude_sessions:` as `@primary`; the short id is used only for `claude attach` and `claude stop`. Rows are matched by session id, then by real-path `cwd` compared case-insensitively. Rows are deduplicated by session id, so an attached session shows once. `Enter` attaches by id in the agent window of the task's own `<repo>--<slug>` session, which `--bg` leaves empty, and jumps there when it is already attached. A background session with no task attaches in a new window of the current session. A session Claude auto-stopped after an hour of idling still shows as a LIVE idle row while it's listed; a failed or stopped one moves to DORMANT. `wb down` and `wb done` stop the background session by id before removing anything (R18). Governs R7, R8, R11, R18.
 - KTD7. **Install the notify hook by merging it into `~/.claude/settings.json`.** `install.sh` adds the `UserPromptSubmit`, `Notification` and `Stop` entries with `jq` if they're missing and leaves every other setting alone. Stowing `settings.json` would replace Jet's existing settings. Governs R6.
 - KTD8. **Port the context card in transcript-only form.** It keeps state from the registry, the latest recap, the last two prompts, the start of the last reply and open questions. Artifacts, decisions, model, cost and context % depend on the reply log and the status-line cache, so the card omits those lines when their sources are absent. Governs R2.
 - KTD9. **Drop the out-of-scope reaches, don't stub them.** The status line loses its week and follow-up counts. `wb done` loses the capture call, the weekly-review nudge and the repo-name nudge, and skips the decision buffer when `open-buffer.sh` isn't installed. The PR check in `wb down` uses `gh` under the watchdog with no token fallback. The ticket-link flag and the board verbs aren't ported.
@@ -231,8 +234,8 @@ stateDiagram-v2
   [*] --> Live: wb new --bg
   Live --> Attached: Enter
   Attached --> Live: detach
-  Live --> AutoStopped: idle about 1h
-  AutoStopped --> Live: Enter attaches and wakes it
+  Live --> AutoStopped: idle about 1h (still a LIVE idle row)
+  AutoStopped --> Attached: Enter attaches and wakes it
   Live --> Dormant: p (wb down) stops it
   Live --> Dormant: reboot or failure
   Dormant --> Live: Enter warm-resumes
@@ -298,6 +301,7 @@ U1 first, because every other unit needs bash 5, the shims and the test harness.
 2. The `wb` entry checks the bash version, sources `wb-lib/*.sh` and dispatches verbs. It has no board or capture verbs.
 3. `compat.sh` provides:
    - the `mkdir` lock with dead-pid takeover (KTD4);
+   - a process-start helper in the registry's `procStart` form (KTD3);
    - epoch-to-date and file-mtime helpers that try BSD forms, then GNU;
    - a `perl` alarm watchdog in place of `timeout`;
    - a field splitter that keeps empty fields.
@@ -312,7 +316,7 @@ U1 first, because every other unit needs bash 5, the shims and the test harness.
 - A lock directory holding a dead pid is taken over immediately.
 - The watchdog kills a command that sleeps past the limit and returns non-zero, while a fast command's output and exit code pass through.
 - The epoch-to-date and mtime helpers give the same results as the GNU forms for fixed inputs.
-- The resolver finds `dotfiles` under `~/dotfiles` and a fixture repo under `Desktop/Projects` (fixture roots), returns nothing for an unknown name, and errors listing both paths when two roots hold the same name.
+- The resolver finds `dotfiles` under `~/dotfiles`, a fixture repo under `Desktop/Projects` and one nested two levels below it (fixture roots), returns nothing for an unknown name, and errors listing both paths when two roots hold the same name.
 - The field splitter keeps empty middle fields.
 
 **Verification:** `run-tests.sh` passes on the Mac, and `install.sh` stays idempotent.
@@ -371,13 +375,13 @@ U1 first, because every other unit needs bash 5, the shims and the test harness.
 **Approach:**
 1. Read every registry file once per refresh. Skip unreadable or half-written files. Keep only entries whose pid is alive with a matching `procStart`.
 2. Join panes on the `tmux` field's pane id.
-3. For background sessions the registry can't place, call `claude agents --json --all` under the watchdog, at most once per refresh.
+3. For background sessions the registry can't place, call `claude agents --json --all` under the watchdog, at most once per refresh. Build this step, its fixture and its hang test only if the probe shows the registry can't place background sessions; otherwise drop it and note it in the comparisons doc as considered and not built.
 4. Apply the `@claude_blocked` markers over the registry status, as in the second diagram.
 5. The pane-scrape fallback is the work repo's `tmux_claude_panes`, with detection moved from `pane_current_command` to the process tree.
-6. Port `claude-notify-hook.sh` as is.
+6. Port `claude-notify-hook.sh` as is if the probe shows background sessions don't inherit `TMUX_PANE`. If they do, the hook checks the registry before writing pane options.
 7. `install.sh` merges the hook entries into `~/.claude/settings.json` with `jq` (KTD7).
 
-**Execution note:** First probe what the registry holds for a `claude --bg` session, and whether a background session sees `TMUX_PANE`. Settle the two deferred questions before writing step 3, and record what was found in `docs/wb-mac/comparisons.md`.
+**Execution note:** First probe what the registry holds for a `claude --bg` session, and whether a background session sees `TMUX_PANE`. Settle the deferred questions (background sessions in the registry, `TMUX_PANE`, `waiting`, starting `--bg` without a prompt) before writing steps 3 and 6, check how the short id `claude --bg` prints relates to the registry's `sessionId`, and record what was found in `docs/wb-mac/comparisons.md`.
 
 **Patterns to follow:** the work repo's `claude-card.sh` `registry_entry`, `wb.sh` `_wb_registry_panes`, and `lib.sh` `tmux_claude_panes`.
 
@@ -387,16 +391,17 @@ U1 first, because every other unit needs bash 5, the shims and the test harness.
 - An unknown status maps to idle.
 - An entry whose pid is dead is ignored.
 - An entry whose pid is alive but whose `procStart` differs (pid reused) is ignored.
+- An entry with a hard-coded `procStart` in the registry's real format (`Sun Oct 25 17:48:10 2026`) is accepted for a live pid started at that UTC time.
 - A half-written registry file is skipped, and the entries after it still load.
 - Covers AE3. `@claude_blocked=nvim-buffer` on a pane whose registry status is `idle` gives "needs you".
 - `@claude_blocked=done` gives "finished".
 - Covers AE2. With no registry directory and a fixture `claude` that exits non-zero, a fixture pane running a fake claude child gives a status from the fallback.
 - A `claude agents` fixture that hangs is cut off by the watchdog, and the refresh still returns rows.
-- A background session present only in `claude agents --json` comes back as a background entry with its session id and `cwd`.
+- A background session present only in `claude agents --json --all` comes back as a background entry with its session id and `cwd`.
 - Notify hook: `start` sets `@claude_working`, `needs-input` sets `@claude_blocked`, and `done` after 30 seconds sets `done`.
 - Hook merge: running the `install.sh` merge twice on a settings fixture that has other keys adds the entries once and keeps the other keys.
 
-**Verification:** Status tests pass. On the live Mac, the picker's statuses match `claude agents --json` for every running session.
+**Verification:** Status tests pass. On the live Mac, at least one live registry entry passes the `procStart` check, and the picker's statuses match `claude agents --json --all` for every running session.
 
 ### U4. Rows and the picker
 
@@ -414,7 +419,8 @@ U1 first, because every other unit needs bash 5, the shims and the test harness.
 
 **Approach:**
 - Port `collect_live_rows`, `render_rows`, the dormant collector, the grouping and ordering, the character-safe `pad`/`padtail` under `LC_ALL=C` awk, the colour legend, the pinned family, and `picker()` with its fzf bindings from the work repo at `481d6ed`.
-- Background sessions become rows nested under their task or family, matched per KTD6.
+- Background sessions become rows nested under their task or family, matched per KTD6. A background row carries a `(bg)` tag after NAME. One that matches no task or family renders as its own row in its cwd repo's group.
+- On a background row, `b` shows "no pane to break out" and does nothing, and `r` renames the task.
 - Rows are deduplicated by session id.
 - A task counts as DORMANT only when no live or background entry has its worktree as `cwd`.
 - The header's pending counts drop the week and follow-up parts (KTD9).
@@ -427,6 +433,8 @@ U1 first, because every other unit needs bash 5, the shims and the test harness.
 - A status change between two refreshes changes a row's colour without moving it.
 - Covers AE4. A fixture background session with the session id recorded on `dotfiles--fix-thing` renders nested under that task.
 - The same background session attached in a tmux pane renders once.
+- A background session matching no task renders as a `(bg)` row in its cwd repo's group.
+- `b` on a background row prints the no-pane message and changes nothing; `r` renames its task.
 - Covers AE5. A registry entry with no `tmux` field and `kind` interactive (a desktop-app session) renders no row.
 - A task whose worktree has a live background session doesn't appear on DORMANT.
 - A task with status `doing` and a transcript but no live session appears on DORMANT with the transcript's age.
@@ -466,12 +474,12 @@ U1 first, because every other unit needs bash 5, the shims and the test harness.
 - `wb new` run inside a repo with only a slug takes the repo from the git root.
 - `wb new` for an ambiguous repo name fails, names both paths and creates nothing.
 - Two `wb new` runs racing on the same slug produce one worktree and one intact task file.
-- Covers AE4. `wb new --bg` with a fake `claude` that prints a session id records it as `@primary`, and starts no agent in the agent window.
+- Covers AE4. `wb new --bg` with a fake `claude` that prints a short id records the matching full session UUID as `@primary`, and starts no agent in the agent window.
 - Covers AE7. `wb down` on a `--bg` task calls the fake `claude stop` with the recorded id, kills the tmux session, keeps the worktree, and the task appears on DORMANT.
 - `wb done` on a `--bg` task stops the session before removing the worktree.
 - `wb done` with no decision-buffer script completes and removes the worktree.
 - Covers AE6. Resuming a DORMANT task rebuilds the session and types, but doesn't run, `claude --resume <id>` in the agent window.
-- `Enter` twice on the same background row opens one attach window and then jumps to it.
+- `Enter` twice on the same background row attaches in the task session's agent window and then jumps to it.
 - `wb down` with `gh` hanging still finishes, through the watchdog, and leaves status unchanged.
 
 **Verification:** Lifecycle tests pass. A real `wb new --bg` on the Mac shows up in the picker, attaches, parks with `p`, and resumes from DORMANT.
@@ -515,13 +523,15 @@ U1 first, because every other unit needs bash 5, the shims and the test harness.
 
 **Files:**
 - `tmux/.config/tmux/tmux.conf`
+- `zsh/.zshrc`
 - `scripts/.config/scripts/tmux/claude-status.sh`
 - `scripts/.config/scripts/tmux/tests/claude-status.test.sh`
 
 **Approach:**
 - Bind `a` to open `wb` in a new window with `$HOME` as its cwd, as Ubuntu does. Leave `m` on `session.sh`.
-- Point `status-left` at `claude-status.sh` and widen `status-left-length` enough for the counts.
+- Point `status-left` at `claude-status.sh` and widen `status-left-length` enough for the counts. Put both lines after the `run '~/.config/tmux/plugins/tpm/tpm'` line: catppuccin-tmux resets `status-left`, `status-right` and their lengths when it loads, which already overrides the current `status-right` setting.
 - `claude-status.sh` counts needs-you and finished panes from U3's status data.
+- Add a `wb` alias to `zsh/.zshrc` beside the `s` and `N` aliases, so `wb new` works from a shell (R10).
 
 **Patterns to follow:** the work repo's `tmux.conf` picker bindings and `claude-status.sh`.
 
@@ -529,7 +539,7 @@ U1 first, because every other unit needs bash 5, the shims and the test harness.
 - With one pane needing Jet and one finished, `claude-status.sh` prints both counts.
 - With none, it prints nothing.
 
-**Verification:** After `prefix+r`, `prefix+a` opens the picker and `prefix+m` still opens `session.sh`.
+**Verification:** After `prefix+r`, `prefix+a` opens the picker, `prefix+m` still opens `session.sh`, and `tmux show -g status-left` still names `claude-status.sh`. `wb` runs from a new shell.
 
 ### U8. Comparisons and boundary check
 
@@ -560,7 +570,7 @@ U1 first, because every other unit needs bash 5, the shims and the test harness.
 |---|---|---|
 | `scripts/.config/scripts/tmux/tests/run-tests.sh` passes on the Mac under Homebrew bash | Unit behaviour for compat, store, status, rows, lifecycle, card and status segment | U1–U7 |
 | `install.sh` runs twice cleanly; `~/.claude/settings.json` keeps its other keys and has the hook entries once | Idempotent setup and the hook merge | U1, U3 |
-| Manual: `prefix+a` on the Mac lists every running Claude session with the right colour, compared against `claude agents --json` | R4 and success criterion 2 on real data | U3, U4 |
+| Manual: `prefix+a` on the Mac lists every running Claude session with the right colour, compared against `claude agents --json --all` | R4 and success criterion 2 on real data | U3, U4 |
 | Manual: `wb new --bg`, attach, `p`, DORMANT `Enter` on a real repo | AE4, AE6, AE7 end to end | U5 |
 | A case-insensitive grep over the branch's added files for employer, client and work-repo names, ticket URLs, token handling and `~/code` paths finds nothing | R17 | U8 |
 
