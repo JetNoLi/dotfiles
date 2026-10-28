@@ -81,6 +81,15 @@ wb_task_set() {
 # wb_task_title <file> — the first `# ` heading.
 wb_task_title() { awk '/^# / { sub(/^# /, ""); print; exit }' "$1"; }
 
+# wb_task_body <file> — the whole record, for readers that lay it out.
+wb_task_body() { cat "$1"; }
+
+# wb_task_set_title <file> <title> — replace the first `# ` heading.
+wb_task_set_title() {
+  WB_TITLE="$2" awk '!done && /^# / { print "# " ENVIRON["WB_TITLE"]; done = 1; next } { print }' "$1" \
+    > "$1.tmp.$$" && mv "$1.tmp.$$" "$1"
+}
+
 # wb_task_read_all — one line per record:
 # file, status, repo, repo_path, worktree, branch, parent, claude_sessions
 # (tab-separated, empty fields kept), from a single awk pass over the store.

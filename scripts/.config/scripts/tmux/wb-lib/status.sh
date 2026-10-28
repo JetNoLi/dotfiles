@@ -26,16 +26,17 @@ _wb_ps_load() {
   done < <(TZ=UTC LC_ALL=C ps -Ao pid=,ppid=,lstart=,command= 2>/dev/null)
 }
 
-# _wb_pane_claude_pid <pane_pid> — the Claude process in a pane: the pane's
-# own process or one of its children whose argv[0] is claude. Keyed on the
-# process tree because a Claude pane's pane_current_command is its version
-# string, not "claude".
+# _wb_pane_claude_pid <pane_pid> — set REPLY to the Claude process in a pane:
+# the pane's own process or one of its children whose argv[0] is claude.
+# Keyed on the process tree because a Claude pane's pane_current_command is
+# its version string, not "claude". Sets REPLY rather than printing so the
+# per-pane loop doesn't fork.
 _wb_pane_claude_pid() {
   local pid cmd
   for pid in "$1" ${WB_PS_KIDS[$1]:-}; do
     cmd="${WB_PS_CMD[$pid]:-}"
     cmd="${cmd%% *}"
-    [ "${cmd##*/}" = claude ] && { echo "$pid"; return 0; }
+    [ "${cmd##*/}" = claude ] && { REPLY="$pid"; return 0; }
   done
   return 1
 }
@@ -87,22 +88,13 @@ wb_registry_field() {
   echo "${rec[$2]}"
 }
 
-# _wb_map_status <registry status> — wb's status for a registry status.
-# Unknown values (failed, stopped, anything new) read as idle until seen.
+# _wb_map_status <registry status> — set REPLY to wb's status. Unknown
+# values (failed, stopped, anything new) read as idle until seen.
 _wb_map_status() {
   case "$1" in
-    waiting) echo needs-input ;;
-    busy)    echo working ;;
-    *)       echo idle ;;
-  esac
-}
-
-# _wb_apply_markers <status> <@claude_blocked> — wb's own markers win.
-_wb_apply_markers() {
-  case "$2" in
-    done) echo done ;;
-    "")   echo "$1" ;;
-    *)    echo needs-input ;;
+    waiting) REPLY=needs-input ;;
+    busy)    REPLY=working ;;
+    *)       REPLY=idle ;;
   esac
 }
 
@@ -120,18 +112,18 @@ _wb_pane_awaiting_input() {
     && grep -qE 'Esc to cancel|Do you want to (proceed|run)' <<< "$screen"
 }
 
-# _wb_scrape_status <target> <title> <@claude_working> — status from the pane
-# title glyph and screen, used when the registry has no entry for the pane.
+# _wb_scrape_status <target> <title> <@claude_working> — set REPLY from the
+# pane title glyph and screen, for a pane the registry has no entry for.
 _wb_scrape_status() {
   local glyph="${2%% *}"
   case "$glyph" in
-    ""|[A-Za-z0-9]*) echo idle; return ;;
+    ""|[A-Za-z0-9]*) REPLY=idle; return ;;
     ✳) ;;
-    *) echo working; return ;;
+    *) REPLY=working; return ;;
   esac
-  if _wb_pane_awaiting_input "$1"; then echo needs-input
-  elif [ "$3" = 1 ]; then echo working
-  else echo idle
+  if _wb_pane_awaiting_input "$1"; then REPLY=needs-input
+  elif [ "$3" = 1 ]; then REPLY=working
+  else REPLY=idle
   fi
 }
 
@@ -139,13 +131,41 @@ _wb_scrape_status() {
 
 # wb_claude_panes [session] — one line per Claude pane, optionally in one
 # session: "rank\ttarget\tstatus\ttask\tpane_id\tsession_id". A pane attached
-# to a background session takes that session's registry status.
+# to a background session takes that session's registry status. Built once
+# per process by wb_status_load.
+WB_PANES_CACHE=""
+WB_PANES_LOADED=""
 wb_claude_panes() {
+  wb_status_load
+  [ -n "$WB_PANES_CACHE" ] || return 0
+  if [ -z "${1:-}" ]; then
+    printf '%s\n' "$WB_PANES_CACHE"
+  else
+    local line target
+    while IFS= read -r line; do
+      target="${line#*$'\t'}"; target="${target%%$'\t'*}"
+      [ "${target%:*}" = "$1" ] && printf '%s\n' "$line"
+    done <<< "$WB_PANES_CACHE"
+  fi
+  return 0
+}
+
+# wb_status_load — read the process table, the registry and every pane once.
+# Callers that go on to ask from inside $(...) call this first, in their own
+# shell, so the caches survive the subshells.
+wb_status_load() {
+  [ -z "$WB_PANES_LOADED" ] || return 0
   _wb_registry_load
-  local sess win pidx pane ppid blocked working title target cpid cmd idx status task sid job
+  WB_PANES_CACHE="$(_wb_claude_panes_all)"
+  WB_PANES_LOADED=1
+}
+
+_wb_claude_panes_all() {
+  local sess win pidx pane ppid blocked working title target cpid cmd idx status task sid job rank
+  local -a rec
   while IFS='|' read -r sess win pidx pane ppid blocked working title; do
-    [ -z "${1:-}" ] || [ "$sess" = "$1" ] || continue
-    cpid="$(_wb_pane_claude_pid "$ppid")" || continue
+    _wb_pane_claude_pid "$ppid" || continue
+    cpid="$REPLY"
     target="$sess:$win.$pidx"
     idx="${WB_REG_BY_PANE[$pane]:-}"
     cmd="${WB_PS_CMD[$cpid]}"
@@ -153,16 +173,22 @@ wb_claude_panes() {
       job="${BASH_REMATCH[1]}"
       idx="${WB_REG_BY_JOB[$job]:-}"
     fi
+    sid=""
     if [ -n "$idx" ]; then
-      status="$(_wb_map_status "$(wb_registry_field "$idx" 4)")"
-      sid="$(wb_registry_field "$idx" 1)"
+      wb_tsv_split "${WB_REG_ROWS[$idx]}" rec
+      _wb_map_status "${rec[4]}"; sid="${rec[1]}"
     else
-      status="$(_wb_scrape_status "$target" "$title" "$working")"
-      sid=""
+      _wb_scrape_status "$target" "$title" "$working"
     fi
-    status="$(_wb_apply_markers "$status" "$blocked")"
+    # wb's own markers win over either source.
+    case "$blocked" in
+      "")   status="$REPLY" ;;
+      done) status=done ;;
+      *)    status=needs-input ;;
+    esac
+    case "$status" in needs-input) rank=0 ;; done) rank=1 ;; working) rank=2 ;; *) rank=3 ;; esac
     task="${title#* }"; [ "$task" != "$title" ] && [ -n "$task" ] || task="Claude Code"
-    printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$(wb_status_rank "$status")" "$target" "$status" "$task" "$pane" "$sid"
+    printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$rank" "$target" "$status" "$task" "$pane" "$sid"
   done < <(tmux list-panes -a -F \
     '#{session_name}|#{window_index}|#{pane_index}|#{pane_id}|#{pane_pid}|#{@claude_blocked}|#{@claude_working}|#{pane_title}' 2>/dev/null)
 }
@@ -181,9 +207,17 @@ wb_bg_sessions() {
   for i in "${!WB_REG_ROWS[@]}"; do
     wb_tsv_split "${WB_REG_ROWS[$i]}" rec
     [ "${rec[2]}" = bg ] && [ -z "${rec[3]}" ] || continue
+    _wb_map_status "${rec[4]}"
     printf '%s\t%s\t%s\t%s\t%s\t%s\n' "${rec[1]}" "${rec[7]}" "${rec[6]}" "${rec[5]}" \
-      "$(_wb_map_status "${rec[4]}")" "${attached[${rec[1]}]:-}"
+      "$REPLY" "${attached[${rec[1]}]:-}"
   done
+}
+
+# wb_live_claude_cwds — the cwd of every live Claude the registry knows.
+wb_live_claude_cwds() {
+  _wb_registry_load
+  local i
+  for i in "${!WB_REG_ROWS[@]}"; do wb_registry_field "$i" 5; done | grep . || true
 }
 
 # wb_registry_pane_session_id <pane_id> — the live session id Claude reports

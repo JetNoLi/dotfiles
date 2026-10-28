@@ -35,7 +35,23 @@ cmd_help() {
 # Tests source this file to reach functions without running a verb.
 if [ "${BASH_SOURCE[0]}" = "$0" ]; then
   case "${1:-}" in
+    '')          picker ;;
     help|--help|-h) cmd_help ;;
+    render)      shift; render_rows "$@" ;;
+    # fzf binds
+    _new)        shift; _new "$@" ;;
+    _down)       shift; _down "$@" ;;
+    _rename)     shift; _rename "$@" ;;
+    _break-out)  shift; _break_out "$@" ;;
+    _ctrl-x)     shift; _ctrl_x "$@" ;;
+    _set-mode)   shift; _set_mode "$@" ;;
+    _toggle-view) shift; _toggle_view "$@" ;;
+    _refresh-dormant) shift; _refresh_dormant "$@" ;;
+    _mode-header) shift; _mode_header "$@" ;;
+    _initial-pos) shift; _initial_pos "$@" ;;
+    _next-needs) shift; _next_needs "$@" ;;
+    _preview)    shift; _preview "$@" ;;
+    _preview-label) shift; _preview_label "$@" ;;
     *) printf "wb: unknown verb '%s' — try wb help\n" "$1" >&2; exit 2 ;;
   esac
 fi

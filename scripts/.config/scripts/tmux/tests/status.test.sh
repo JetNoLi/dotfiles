@@ -5,33 +5,6 @@ source "$(dirname "$0")/helpers.sh"
 source "$WB"
 set +e
 
-# fake_claude_pane <session> [argv0] — a tmux session whose pane shell runs a
-# child with argv[0] "claude" (or argv0), the shape a real Claude pane has.
-# Prints "<pane_id> <claude_pid>".
-fake_claude_pane() {
-  tmux new-session -d -s "$1" -x 120 -y 30 "bash -c '(exec -a \"${2:-claude}\" sleep 300) & wait'"
-  local pane ppid cpid=""
-  pane="$(tmux list-panes -t "=$1:" -F '#{pane_id}')"
-  ppid="$(tmux list-panes -t "=$1:" -F '#{pane_pid}')"
-  for _ in 1 2 3 4 5 6 7 8 9 10; do
-    cpid="$(pgrep -P "$ppid" | head -n1)"
-    [ -n "$cpid" ] && break
-    sleep 0.1
-  done
-  echo "$pane $cpid"
-}
-
-# registry <pid> <status> [pane] [kind] [procStart] [sessionId] [jobId]
-registry() {
-  local start="${5:-$(TZ=UTC LC_ALL=C ps -o lstart= -p "$1" 2>/dev/null | sed 's/ *$//')}"
-  jq -n --arg pid "$1" --arg st "$2" --arg pane "${3:-}" --arg kind "${4:-interactive}" \
-        --arg start "$start" --arg sid "${6:-sid-$1}" --arg job "${7:-}" '
-    {pid: ($pid | tonumber), sessionId: $sid, status: $st, kind: $kind,
-     procStart: $start, cwd: "/code/proj", name: "n-\($pid)"}
-    + (if $pane == "" then {} else {tmux: "s:@1.\($pane)"} end)
-    + (if $job == "" then {} else {jobId: $job} end)' > "$CLAUDE_SESSIONS_DIR/$1.json"
-}
-
 status_of() { # <pane_id> — the status wb gives that pane
   wb_claude_panes | awk -F'\t' -v p="$1" '$5 == p { print $3 }'
 }
@@ -83,12 +56,7 @@ assert_eq "a pane with no claude process isn't listed" 0 "$(wb_claude_panes | cu
 # --- background sessions ---------------------------------------------------------------
 # The real registry form, with a start time stubbed into ps for a pid that
 # doesn't exist on this machine.
-cat > "$T/bin/ps" <<EOF
-#!/usr/bin/env bash
-/bin/ps "\$@"
-case "\$*" in *lstart=,command=*) echo "424242     1 Sun Oct  5 17:48:10 2026 claude" ;; esac
-EOF
-chmod +x "$T/bin/ps"
+echo "424242     1 Sun Oct  5 17:48:10 2026 claude" >> "$T/ps-extra"
 registry 424242 busy "" bg "Sun Oct  5 17:48:10 2026" 86e34592-cdb9-4da2-bf55-6db85f3bc22e 86e34592
 out="$(wb_bg_sessions)"
 assert "an entry in the registry's real procStart form is accepted" '^86e34592-cdb9' "$out"

@@ -5,7 +5,14 @@
 WB_REPO_ROOTS="${WB_REPO_ROOTS:-$HOME/dotfiles:$HOME/Desktop}"
 
 # wb_repo_list — every repo across the roots, one "<name>\t<path>" per line.
+# Searched once per process: the picker resolves a repo per dormant row.
+WB_REPO_LIST_CACHE=""
 wb_repo_list() {
+  [ -n "$WB_REPO_LIST_CACHE" ] || WB_REPO_LIST_CACHE="$(_wb_repo_search)"
+  [ -z "$WB_REPO_LIST_CACHE" ] || printf '%s\n' "$WB_REPO_LIST_CACHE"
+}
+
+_wb_repo_search() {
   local root roots
   IFS=: read -r -a roots <<< "$WB_REPO_ROOTS"
   for root in "${roots[@]}"; do
