@@ -89,6 +89,11 @@ wb_watchdog() {
   ' "$secs" "$@"
 }
 
+# wb_reverse <file> — the file's lines last first (tac, else BSD tail -r).
+wb_reverse() {
+  if command -v tac >/dev/null 2>&1; then tac "$1"; else tail -r "$1"; fi
+}
+
 # wb_tsv_split <line> <array_name> — split on tabs keeping empty fields,
 # which `IFS=$'\t' read` collapses because tab is IFS whitespace.
 wb_tsv_split() {

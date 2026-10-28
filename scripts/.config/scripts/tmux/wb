@@ -57,6 +57,8 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
     _initial-pos) shift; _initial_pos "$@" ;;
     _next-needs) shift; _next_needs "$@" ;;
     _preview)    shift; _preview "$@" ;;
+    # fzf shows a preview's stderr, so the card's is dropped
+    _card)       shift; wb_card "$@" 2>/dev/null ;;
     _preview-label) shift; _preview_label "$@" ;;
     *) printf "wb: unknown verb '%s' — try wb help\n" "$1" >&2; exit 2 ;;
   esac

@@ -212,7 +212,7 @@ _preview_label() {
 # state lines, so _preview follows it. fzf runs this with $SHELL, so it
 # stays plain sh.
 wb_preview_cmd() {
-  printf '%s' "c=\$('$SELF' _card {7} {10} {12}); rc=\$?;" \
+  printf '%s' "c=\$('$SELF' _card {7} {10} {12} {9}); rc=\$?;" \
     " [ -n \"\$c\" ] && printf '%s\\n\\n' \"\$c\";" \
     " if [ -z \"\$c\" ] || [ \"\$rc\" = 3 ]; then" \
     " '$SELF' _preview {7} {9}; fi"

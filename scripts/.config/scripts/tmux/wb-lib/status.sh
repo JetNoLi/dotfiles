@@ -48,7 +48,7 @@ WB_REG_LOADED=""
 WB_REG_ROWS=()
 
 # _wb_registry_load — every live registry entry as
-# "pid\tsessionId\tkind\tpane\tstatus\tcwd\tname\tjobId". An entry counts
+# "pid\tsessionId\tkind\tpane\tstatus\tcwd\tname\tjobId\tstatusUpdatedAt(ms)". An entry counts
 # only while its pid is running with the same start time (procStart), so a
 # reused pid never inherits a dead session. Files are fed through
 # `fromjson?`, so a half-written one is skipped and the rest still load.
@@ -66,7 +66,7 @@ _wb_registry_load() {
     start="${words[*]}"
     [ -n "${WB_PS_START[$pid]:-}" ] && [ "${WB_PS_START[$pid]}" = "$start" ] || continue
     i="${#WB_REG_ROWS[@]}"
-    WB_REG_ROWS+=("$(printf '%s\t' "${rec[@]:0:7}")${rec[7]}")
+    WB_REG_ROWS+=("$(printf '%s\t' "${rec[@]:0:8}")${rec[9]}")
     [ -n "${rec[3]}" ] && WB_REG_BY_PANE[${rec[3]}]="$i"
     [ -n "${rec[7]}" ] && WB_REG_BY_JOB[${rec[7]}]="$i"
     WB_REG_BY_SID[${rec[1]}]="$i"
@@ -76,7 +76,8 @@ _wb_registry_load() {
     done | jq -rR 'fromjson? | select(type == "object" and .pid != null)
       | [(.pid | tostring), (.sessionId // ""), (.kind // ""),
          ((.tmux // "") | if test("\\.%[0-9]+$") then sub("^.*\\."; "") else "" end),
-         (.status // ""), (.cwd // ""), (.name // ""), (.jobId // ""), (.procStart // "")]
+         (.status // ""), (.cwd // ""), (.name // ""), (.jobId // ""), (.procStart // ""),
+         (.statusUpdatedAt // 0 | tostring)]
       | @tsv' 2>/dev/null
   )
 }
@@ -218,6 +219,23 @@ wb_live_claude_cwds() {
   _wb_registry_load
   local i
   for i in "${!WB_REG_ROWS[@]}"; do wb_registry_field "$i" 5; done | grep . || true
+}
+
+# wb_registry_entry_for_sid <session_id> — "status\tstatusUpdatedAt(ms)".
+wb_registry_entry_for_sid() {
+  _wb_registry_load
+  local idx="${WB_REG_BY_SID[$1]:-}"
+  [ -n "$idx" ] || return 1
+  local -a rec
+  wb_tsv_split "${WB_REG_ROWS[$idx]}" rec
+  printf '%s\t%s\n' "${rec[4]}" "${rec[8]}"
+}
+
+# wb_registry_job_session_id <job_id> — a background session's full id.
+wb_registry_job_session_id() {
+  _wb_registry_load
+  local idx="${WB_REG_BY_JOB[$1]:-}"
+  [ -n "$idx" ] && wb_registry_field "$idx" 1
 }
 
 # wb_registry_pane_session_id <pane_id> — the live session id Claude reports
