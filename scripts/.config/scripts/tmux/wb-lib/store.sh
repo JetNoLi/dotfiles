@@ -224,10 +224,10 @@ wb_family_tree() {
 
 # --- Claude transcripts ---------------------------------------------------------
 # Claude Code keeps one .jsonl per conversation under
-# ~/.claude/projects/<cwd with "/" and "." replaced by "-">.
+# ~/.claude/projects/<cwd with every non-alphanumeric replaced by "-">.
 
 wb_transcript_dir() {
-  printf '%s/%s\n' "$CLAUDE_PROJECTS_DIR" "$(printf '%s' "$1" | tr './' '--')"
+  printf '%s/%s\n' "$CLAUDE_PROJECTS_DIR" "$(printf '%s' "$1" | LC_ALL=C tr -c 'A-Za-z0-9' '-')"
 }
 
 # wb_transcripts <worktree_abs> — "<id>\t<mtime>" per conversation, newest

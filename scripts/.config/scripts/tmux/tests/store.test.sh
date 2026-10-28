@@ -61,4 +61,12 @@ mk proj--loop-b proj--loop-a
 out="$(wb_family_tree proj--loop-a | sort | xargs)"
 assert_eq "a family with a cycle stops at the repeated stem" "proj--loop-a proj--loop-b" "$out"
 
+# --- transcript directories ---------------------------------------------------------
+# Claude Code turns every non-alphanumeric in the cwd into "-"; the expected
+# names are written out rather than derived.
+assert_eq "/ and . become -" "$CLAUDE_PROJECTS_DIR/-Users-me-dotfiles--worktrees-fix" \
+  "$(wb_transcript_dir /Users/me/dotfiles/.worktrees/fix)"
+assert_eq "_ and spaces become - too" "$CLAUDE_PROJECTS_DIR/-Users-me-Desktop-My-Repo--worktrees-fix-login" \
+  "$(wb_transcript_dir "/Users/me/Desktop/My Repo/.worktrees/fix_login")"
+
 finish
