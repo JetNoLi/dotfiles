@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# wb — the Mac picker over Claude agents and tasks, plus the task lifecycle.
+# Carved out of the work repo's wb.sh; see docs/wb-mac/comparisons.md for
+# where it deliberately differs.
+#
+#   wb                     open the picker
+#   wb new [repo] <slug> [--bg]
+#                          worktree + tmux session + task (--bg: background agent)
+#   wb down [task]         park: stop the session, keep the worktree
+#   wb done [task]         close: stop the session, remove the worktree
+#   wb help                this text
+
+# Checked before anything bash 5 only is parsed: namerefs, `local -A`,
+# `mapfile` and empty arrays under `set -u` all fail on macOS's bash 3.2.
+if [ -z "${BASH_VERSINFO:-}" ] || [ "${BASH_VERSINFO[0]}" -lt 5 ]; then
+  echo "wb: needs bash 5 or newer, found ${BASH_VERSION:-a non-bash shell}." >&2
+  echo "    Install it with: brew install bash" >&2
+  exit 1
+fi
+
+set -euo pipefail
+WB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SELF="$WB_DIR/$(basename "${BASH_SOURCE[0]}")"   # fzf bindings re-invoke us
+
+for _wb_lib in "$WB_DIR"/wb-lib/*.sh; do
+  # shellcheck source=/dev/null
+  source "$_wb_lib"
+done
+unset _wb_lib
+
+cmd_help() {
+  awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "$SELF" | sed -n '/^  wb/,$p'
+}
+
+# Tests source this file to reach functions without running a verb.
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+  case "${1:-}" in
+    help|--help|-h) cmd_help ;;
+    *) printf "wb: unknown verb '%s' — try wb help\n" "$1" >&2; exit 2 ;;
+  esac
+fi

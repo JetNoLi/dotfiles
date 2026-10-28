@@ -1,0 +1,112 @@
+# compat.sh — shims for what macOS lacks or spells differently: flock,
+# timeout, GNU date/stat. Each tries the BSD form first, then GNU, so the
+# module still runs on Linux. Sourced by wb; defines functions only.
+
+WB_STATE_DIR="${WB_STATE_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/wb}"
+WB_LOCK_WAIT="${WB_LOCK_WAIT:-5}"   # seconds a writer waits for a held task lock
+
+# --- task locks (KTD4) -------------------------------------------------------
+# One lock directory per task file, named from its basename so two paths to
+# the same task share a lock. mkdir is atomic on both platforms; the pid file
+# inside lets a later writer take over a lock whose holder died.
+
+_wb_lock_path() {
+  printf '%s/locks/%s.lock\n' "$WB_STATE_DIR" "$(basename -- "$1")"
+}
+
+# wb_lock_acquire <task_file> [wait_seconds] — 0 once held, 75 on timeout.
+wb_lock_acquire() {
+  local lock waited=0 holder wait="${2:-$WB_LOCK_WAIT}"
+  lock="$(_wb_lock_path "$1")"
+  mkdir -p "${lock%/*}" || return 75
+  while ! mkdir "$lock" 2>/dev/null; do
+    holder="$(cat "$lock/pid" 2>/dev/null)"
+    if [ -n "$holder" ] && ! kill -0 "$holder" 2>/dev/null; then
+      rm -rf "$lock"
+      continue
+    fi
+    if [ "$waited" -ge $(( wait * 10 )) ]; then
+      echo "wb: $(basename -- "$1") is locked by pid ${holder:-?}; try again, or remove $lock if that process is gone" >&2
+      return 75
+    fi
+    sleep 0.1
+    waited=$(( waited + 1 ))
+  done
+  echo "$BASHPID" > "$lock/pid"
+  WB_HELD_LOCKS+=("$lock")
+}
+
+# wb_lock_release <task_file> — drops the lock only if this process holds it.
+wb_lock_release() {
+  local lock; lock="$(_wb_lock_path "$1")"
+  [ "$(cat "$lock/pid" 2>/dev/null)" = "$BASHPID" ] && rm -rf "$lock"
+  return 0
+}
+
+# wb_lock_release_all — EXIT-trap backstop for locks a failed verb left held.
+wb_lock_release_all() {
+  local lock
+  for lock in "${WB_HELD_LOCKS[@]}"; do
+    [ "$(cat "$lock/pid" 2>/dev/null)" = "$BASHPID" ] && rm -rf "$lock"
+  done
+  WB_HELD_LOCKS=()
+}
+WB_HELD_LOCKS=()
+
+# --- processes and time -------------------------------------------------------
+
+# wb_proc_start <pid> — the process start time in the session registry's
+# procStart form (UTC, C locale: "Sun Oct 25 17:48:10 2026"). Plain `ps`
+# prints local time, which never matches the registry.
+wb_proc_start() {
+  local out
+  out="$(TZ=UTC LC_ALL=C ps -o lstart= -p "$1" 2>/dev/null)" || return 1
+  out="${out#"${out%%[![:space:]]*}"}"
+  printf '%s\n' "${out%"${out##*[![:space:]]}"}"
+}
+
+# wb_epoch_to_date <epoch> [+format] — `date -r` (BSD), then `date -d @` (GNU).
+wb_epoch_to_date() {
+  local fmt="${2:-+%Y-%m-%d}"
+  date -r "$1" "$fmt" 2>/dev/null || date -d "@$1" "$fmt"
+}
+
+# wb_mtime <file> — modification time as epoch seconds. Output is captured
+# first because GNU stat treats `-f %m` as two files and prints one of them.
+wb_mtime() {
+  local out
+  if out="$(stat -f %m "$1" 2>/dev/null)"; then
+    printf '%s\n' "$out"
+  else
+    stat -c %Y "$1"
+  fi
+}
+
+# wb_watchdog <seconds> <cmd...> — run cmd, killing it after <seconds>.
+# Exit status and output pass through; a killed command exits 124, as GNU
+# timeout does.
+wb_watchdog() {
+  local secs="$1"; shift
+  perl -e '
+    $secs = shift;
+    $pid = fork // exit 127;
+    if (!$pid) { exec @ARGV or exit 127 }
+    $SIG{ALRM} = sub { kill "TERM", $pid; exit 124 };
+    alarm $secs;
+    waitpid $pid, 0;
+    exit($? & 127 ? 128 + ($? & 127) : $? >> 8);
+  ' "$secs" "$@"
+}
+
+# wb_tsv_split <line> <array_name> — split on tabs keeping empty fields,
+# which `IFS=$'\t' read` collapses because tab is IFS whitespace.
+wb_tsv_split() {
+  local -n _wb_tsv_out="$2"
+  local _wb_tsv_rest="$1"
+  _wb_tsv_out=()
+  while [[ "$_wb_tsv_rest" == *$'\t'* ]]; do
+    _wb_tsv_out+=("${_wb_tsv_rest%%$'\t'*}")
+    _wb_tsv_rest="${_wb_tsv_rest#*$'\t'}"
+  done
+  _wb_tsv_out+=("$_wb_tsv_rest")
+}
