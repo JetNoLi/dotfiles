@@ -52,10 +52,6 @@ assert_eq "epoch to date, default format" "2026-10-28" "$(TZ=UTC wb_epoch_to_dat
 touch_epoch 1793186805 "$T/f"
 assert_eq "mtime" 1793186805 "$(wb_mtime "$T/f")"
 
-# --- process start ------------------------------------------------------------------
-assert "proc start is in the registry's UTC C-locale form" \
-  '^[A-Z][a-z]{2} [A-Z][a-z]{2} [ 0-9][0-9] [0-9]{2}:[0-9]{2}:[0-9]{2} [0-9]{4}$' "$(wb_proc_start $$)"
-
 # --- field splitter -----------------------------------------------------------------
 wb_tsv_split $'a\t\tc\t' fields
 assert_eq "empty middle and trailing fields are kept" 4 "${#fields[@]}"

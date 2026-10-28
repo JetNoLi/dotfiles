@@ -53,17 +53,7 @@ wb_lock_release_all() {
 }
 WB_HELD_LOCKS=()
 
-# --- processes and time -------------------------------------------------------
-
-# wb_proc_start <pid> — the process start time in the session registry's
-# procStart form (UTC, C locale: "Sun Oct 25 17:48:10 2026"). Plain `ps`
-# prints local time, which never matches the registry.
-wb_proc_start() {
-  local out
-  out="$(TZ=UTC LC_ALL=C ps -o lstart= -p "$1" 2>/dev/null)" || return 1
-  out="${out#"${out%%[![:space:]]*}"}"
-  printf '%s\n' "${out%"${out##*[![:space:]]}"}"
-}
+# --- time -------------------------------------------------------
 
 # wb_epoch_to_date <epoch> [+format] — `date -r` (BSD), then `date -d @` (GNU).
 wb_epoch_to_date() {

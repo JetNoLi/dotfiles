@@ -30,6 +30,9 @@ command -v jq >/dev/null || brew install jq
 # Stow stops on a conflict (e.g. a real ~/.gitconfig) rather than overwriting.
 stow -t "$HOME" zsh tmux ohmyposh scripts aerospace ghostty git
 
+# wb's agent-status hook, merged into Claude Code's settings (not stowed).
+scripts/.config/scripts/tmux/claude-hooks-merge.sh
+
 echo "Done. Still needed by hand:"
 command -v gh >/dev/null && gh auth status >/dev/null 2>&1 || echo "  - gh auth login"
 [ -f ~/.gitconfig.local ] || echo "  - create ~/.gitconfig.local with your [user] name/email"
