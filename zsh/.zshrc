@@ -85,6 +85,7 @@ alias ld="lazydocker"
 
 #Script Aliases
 alias s="~/.config/scripts/tmux/session.sh"
+alias wb="~/.config/scripts/tmux/wb"
 alias N="~/.config/scripts/tmux/notes.sh"
 alias n="~/Desktop/Projects/go-notes/notes.exe"
 
