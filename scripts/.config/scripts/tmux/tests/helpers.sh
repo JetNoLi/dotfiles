@@ -13,10 +13,16 @@ export WB_STATE_DIR="$T/state"
 export WB_REPO_ROOTS="$T/code"
 
 # Every `tmux` call in a test, including the module's own, goes to a private
-# socket.
+# socket with no config loaded. attach and switch-client need a terminal, so
+# they are logged to $T/focus.log instead.
 SOCK="wb-test-$$"
 REAL_TMUX="$(command -v tmux)"
-printf '#!/usr/bin/env bash\nexec "%s" -L "%s" "$@"\n' "$REAL_TMUX" "$SOCK" > "$T/bin/tmux"
+export SHELL=/bin/sh   # panes skip the login shell's rc files, which reorder PATH
+cat > "$T/bin/tmux" <<EOF
+#!/usr/bin/env bash
+case "\$1" in attach|attach-session|switch-client) echo "\$*" >> "$T/focus.log"; exit 0 ;; esac
+exec "$REAL_TMUX" -L "$SOCK" -f /dev/null "\$@"
+EOF
 chmod +x "$T/bin/tmux"
 PATH="$T/bin:$PATH"
 
@@ -98,4 +104,30 @@ registry() {
 fake_bg() {
   echo "$1     1 Sun Oct  5 17:48:10 2026 claude" >> "$T/ps-extra"
   registry "$1" "$2" "" bg "Sun Oct  5 17:48:10 2026" "$3" "$4" "$5"
+}
+
+# fake_claude_bin [sid] — a `claude` on PATH that logs every call to
+# $T/claude.log. `--bg -n <name>` registers a background session (registry
+# file plus process line) and prints what the real one prints; `attach <id>`
+# idles with that argv; `stop <id>` removes the registry entry.
+fake_claude_bin() {
+  local sid="${1:-86e34592-cdb9-4da2-bf55-6db85f3bc22e}"
+  cat > "$T/bin/claude" <<FAKE
+#!/usr/bin/env bash
+echo "\$*" >> "$T/claude.log"
+case "\$1" in
+  --bg)
+    name="\$3"; job="${sid:0:8}"
+    echo "515151     1 Sun Oct  5 17:48:10 2026 claude" >> "$T/ps-extra"
+    jq -n --arg cwd "\$PWD" --arg name "\$name" '{pid: 515151, sessionId: "$sid", jobId: "${sid:0:8}",
+      kind: "bg", status: "idle", procStart: "Sun Oct  5 17:48:10 2026", cwd: \$cwd, name: \$name}' \
+      > "$CLAUDE_SESSIONS_DIR/515151.json"
+    echo "Starting background service…"
+    echo "backgrounded · \$job · \$name (idle — send a prompt to start)" ;;
+  attach) exec -a "claude attach \$2" sleep 300 ;;
+  stop) [ -z "\${WB_TEST_WT:-}" ] || { [ -d "\$WB_TEST_WT" ] && echo "worktree present at stop" >> "$T/claude.log"; }
+        rm -f "$CLAUDE_SESSIONS_DIR/515151.json"; echo "stopped \$2" ;;
+esac
+FAKE
+  chmod +x "$T/bin/claude"
 }

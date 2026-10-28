@@ -309,10 +309,10 @@ _ctrl_x() {
         _ctrl_x_confirm "$(wb_session_task_file "$session" 2>/dev/null || true)" "$session" "$effect" || return 0
         cd "$HOME" 2>/dev/null || true   # never tear down the worktree we stand in
         if [ "$self" = 1 ]; then
-          cmd_done --keep-session "$session"
+          cmd_done "$session"
           echo "wb: not closing '$session' via ctrl-x — it's your current session" >&2
         else
-          cmd_done "$session"
+          cmd_done --close "$session"
         fi
       elif [ -n "$ref" ]; then
         _ctrl_x_confirm "$ref" "$(wb_task_stem "$ref")" "Marks the task done; nothing live is torn down." || return 0

@@ -74,14 +74,15 @@ wb_mtime() {
 
 # wb_watchdog <seconds> <cmd...> — run cmd, killing it after <seconds>.
 # Exit status and output pass through; a killed command exits 124, as GNU
-# timeout does.
+# timeout does. The command runs in its own process group and the whole
+# group is killed, so a child holding stdout open can't keep a $(...) waiting.
 wb_watchdog() {
   local secs="$1"; shift
   perl -e '
     $secs = shift;
     $pid = fork // exit 127;
-    if (!$pid) { exec @ARGV or exit 127 }
-    $SIG{ALRM} = sub { kill "TERM", $pid; exit 124 };
+    if (!$pid) { setpgrp(0, 0); exec @ARGV or exit 127 }
+    $SIG{ALRM} = sub { kill "TERM", -$pid; exit 124 };
     alarm $secs;
     waitpid $pid, 0;
     exit($? & 127 ? 128 + ($? & 127) : $? >> 8);

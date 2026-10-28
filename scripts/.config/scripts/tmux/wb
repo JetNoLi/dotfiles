@@ -6,8 +6,10 @@
 #   wb                     open the picker
 #   wb new [repo] <slug> [--bg]
 #                          worktree + tmux session + task (--bg: background agent)
-#   wb down [task]         park: stop the session, keep the worktree
-#   wb done [task]         close: stop the session, remove the worktree
+#   wb down [session|task] park: stop the agent and session, keep the worktree
+#   wb done [--close] [session|task]
+#                          close: stop the agent, remove the worktree (--close: and the session)
+#   wb resume <task>       rebuild a parked task's session, warm resume typed in
 #   wb help                this text
 
 # Checked before anything bash 5 only is parsed: namerefs, `local -A`,
@@ -37,6 +39,10 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
   case "${1:-}" in
     '')          picker ;;
     help|--help|-h) cmd_help ;;
+    new)         shift; cmd_new "$@" ;;
+    down)        shift; cmd_down "$@" ;;
+    done)        shift; cmd_done "$@" ;;
+    resume)      shift; cmd_resume "$@" ;;
     render)      shift; render_rows "$@" ;;
     # fzf binds
     _new)        shift; _new "$@" ;;

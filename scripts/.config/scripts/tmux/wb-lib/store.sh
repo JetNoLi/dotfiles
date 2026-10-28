@@ -40,13 +40,14 @@ wb_task_files() {
 # wb_task_exists <file>
 wb_task_exists() { [ -f "$1" ]; }
 
-# wb_task_get <file> <key> — one frontmatter value, inline comment stripped.
+# wb_task_get <file> <key> — one frontmatter value, inline comment stripped
+# (including the comment of a key that has no value).
 wb_task_get() {
   awk -v key="$2" '
     NR == 1 && $0 != "---" { exit }
     /^---$/ { infm++; if (infm == 2) exit; next }
     infm == 1 && $0 ~ "^" key ":" {
-      sub("^" key ":[ \t]*", ""); sub(/[ \t]+#.*$/, ""); sub(/[ \t]+$/, ""); print; exit
+      sub("^" key ":[ \t]*", ""); sub(/(^|[ \t]+)#.*$/, ""); sub(/[ \t]+$/, ""); print; exit
     }
   ' "$1"
 }
@@ -98,7 +99,7 @@ wb_task_read_all() {
   mapfile -t files < <(wb_task_files)
   [ "${#files[@]}" -gt 0 ] || return 0
   awk '
-    function clip(s) { sub(/[ \t]+#.*$/, "", s); sub(/[ \t]+$/, "", s); return s }
+    function clip(s) { sub(/(^|[ \t]+)#.*$/, "", s); sub(/[ \t]+$/, "", s); return s }
     function val(k,   s) { s = $0; sub("^" k ":[ \t]*", "", s); return clip(s) }
     function emit() { printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", file, f["status"], f["repo"], f["repo_path"], f["worktree"], f["branch"], f["parent"], f["claude_sessions"] }
     FNR == 1 { if (NR > 1) emit(); file = FILENAME; infm = 0; done = 0; split("", f) }

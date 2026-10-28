@@ -41,6 +41,9 @@ start=$SECONDS
 wb_watchdog 1 sleep 5; code=$?
 assert_eq "the watchdog kills a slow command with exit 124" 124 "$code"
 assert "the watchdog stops it near the limit" '^[12]$' "$(( SECONDS - start ))"
+start=$SECONDS
+out="$(wb_watchdog 1 sh -c 'sleep 5 & echo started; wait')"
+assert "a child holding stdout open is killed with its parent" '^[12]$' "$(( SECONDS - start ))"
 out="$(wb_watchdog 2 sh -c 'echo fast; exit 3')"; code=$?
 assert_eq "a fast command's output passes through" fast "$out"
 assert_eq "a fast command's exit code passes through" 3 "$code"

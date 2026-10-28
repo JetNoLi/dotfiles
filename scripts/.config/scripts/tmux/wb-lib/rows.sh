@@ -106,7 +106,7 @@ wb_bg_rows() {
     file="${rec[0]}"
     for id in ${rec[7]//,/ }; do by_sid[${id%%@*}]="$file"; done
     [ -n "${rec[4]}" ] || continue
-    wt="${rec[3]:-$(wb_task_repo_path "$file" 2>/dev/null)}/${rec[4]}"
+    wt="${rec[3]:-$(wb_task_repo_path "$file" 2>/dev/null || true)}/${rec[4]}"
     by_cwd[$(_wb_real_lower "$wt")]="$file"
   done < <(wb_task_read_all)
 
