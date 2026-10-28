@@ -394,7 +394,7 @@ picker() {
   local navkeys='j,k,g,G,q,i,r,b,p,n,u,/'
   local R="reload-sync(\"$SELF\" render \"$mode_file\" \"$view_file\")"
   local H="transform-header(\"$SELF\" _mode-header \"$mode_file\" \"$view_file\")"
-  selection="$(printf '%s\n' "$rendered" | fzf --ansi --select-1 --track \
+  selection="$(printf '%s\n' "$rendered" | fzf --ansi --track \
         --delimiter=$'\t' --with-nth=1 --header-lines=1 \
         --layout=reverse-list --pointer='>' \
         --height=100% --padding=6,1,2,1 \
