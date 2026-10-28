@@ -294,6 +294,13 @@ _new() {
   fi
 }
 
+# _ctrl_x_done <wb done args...> — wb done from ctrl-x. become() hands
+# stdout to fzf as the selection, so all output goes to the terminal, and a
+# refusal is held there before the picker window closes.
+_ctrl_x_done() {
+  cmd_done "$@" >&2 || { _wb_hold "done failed — the task is still open"; return 0; }
+}
+
 # _ctrl_x <kind> <session> <target> <ref> — `ctrl-x`: a task row asks, then
 # runs wb done and closes the session; a repo row is killed; an agent row
 # kills its pane. On the session the picker runs in, the session stays open.
@@ -309,21 +316,21 @@ _ctrl_x() {
         _ctrl_x_confirm "$(wb_session_task_file "$session" 2>/dev/null || true)" "$session" "$effect" || return 0
         cd "$HOME" 2>/dev/null || true   # never tear down the worktree we stand in
         if [ "$self" = 1 ]; then
-          cmd_done "$session"
-          echo "wb: not closing '$session' via ctrl-x — it's your current session" >&2
+          _ctrl_x_done "$session"
+          _wb_hold "not closing '$session' via ctrl-x — it's your current session"
         else
-          cmd_done --close "$session"
+          _ctrl_x_done --close "$session"
         fi
       elif [ -n "$ref" ]; then
-        _ctrl_x_confirm "$ref" "$(wb_task_stem "$ref")" "Marks the task done; nothing live is torn down." || return 0
-        cmd_done "$(wb_task_stem "$ref")"
+        _ctrl_x_confirm "$ref" "$(wb_task_stem "$ref")" "Removes the worktree (the branch stays) and marks the task done." || return 0
+        _ctrl_x_done "$(wb_task_stem "$ref")"
       fi
       ;;
     bg)
       wb_task_exists "$ref" || { _wb_hold "this background session has no task to close"; return 0; }
       _ctrl_x_confirm "$ref" "$(wb_task_stem "$ref")" "Stops the background agent, removes the worktree and marks the task done." || return 0
       cd "$HOME" 2>/dev/null || true
-      cmd_done "$(wb_task_stem "$ref")"
+      _ctrl_x_done "$(wb_task_stem "$ref")"
       ;;
     repo)  [ -n "$session" ] && tmux kill-session -t "=$session" 2>/dev/null ;;
     agent) [ -n "$target" ] && tmux kill-pane -t "$target" 2>/dev/null ;;
@@ -415,5 +422,6 @@ picker() {
         --bind "/:clear-query+execute-silent(\"$SELF\" _set-mode \"$mode_file\" search)+unbind($navkeys)+enable-search+change-prompt(SEARCH )+$R+$H" \
         --bind "esc:enable-search+clear-query+disable-search+execute-silent(\"$SELF\" _set-mode \"$mode_file\" normal)+rebind($navkeys)+change-prompt(NORMAL )+$R+$H")" || exit 0
 
-  [ -n "$selection" ] && _accept "$selection"
+  # A row always has tabs; anything else is stray output from a become().
+  if [[ "$selection" == *$'\t'* ]]; then _accept "$selection"; fi
 }
