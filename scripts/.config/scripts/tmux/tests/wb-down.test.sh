@@ -27,6 +27,15 @@ assert "the record keeps the bg session as @primary" '^86e34592-[^@]*@[^@]*@prim
   "$(wb_task_get "$TASKS_DIR/dotfiles--bg-task.md" claude_sessions)"
 assert "AE7: the task appears on DORMANT" $'^dotfiles\tbg task\t' "$(collect_dormant_rows normal)"
 
+# --- a background agent that won't stop ------------------------------------------------------
+wb new --bg dotfiles stuck >/dev/null 2>&1
+sessions="$(wb_task_get "$TASKS_DIR/dotfiles--stuck.md" claude_sessions)"
+out="$(WB_TEST_STOP_FAILS=1 wb down dotfiles--stuck 2>&1)"; code=$?
+assert_eq "a failed stop aborts wb down" 1 "$code"
+assert "it says the agent is still running" 'still running' "$out"
+assert "the tmux session is kept" 'dotfiles--stuck' "$(tmux list-sessions -F '#S')"
+assert_eq "the record is unchanged" "$sessions" "$(wb_task_get "$TASKS_DIR/dotfiles--stuck.md" claude_sessions)"
+
 # --- @primary from the registry for a foreground agent ---------------------------------------
 wb new dotfiles fg-task >/dev/null 2>&1
 WT2="$REPO/.worktrees/fg-task"

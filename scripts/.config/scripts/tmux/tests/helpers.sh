@@ -109,7 +109,9 @@ fake_bg() {
 # fake_claude_bin [sid] — a `claude` on PATH that logs every call to
 # $T/claude.log. `--bg -n <name>` registers a background session (registry
 # file plus process line) and prints what the real one prints; `attach <id>`
-# idles with that argv; `stop <id>` removes the registry entry.
+# idles with that argv; `stop <id>` removes the registry entry. During a
+# stop, WB_TEST_STOP_WRITES=<file> writes into the worktree the way a
+# mid-turn agent would, and WB_TEST_STOP_FAILS=1 makes the stop fail.
 fake_claude_bin() {
   local sid="${1:-86e34592-cdb9-4da2-bf55-6db85f3bc22e}"
   cat > "$T/bin/claude" <<FAKE
@@ -126,6 +128,8 @@ case "\$1" in
     echo "backgrounded · \$job · \$name (idle — send a prompt to start)" ;;
   attach) exec -a "claude attach \$2" sleep 300 ;;
   stop) [ -z "\${WB_TEST_WT:-}" ] || { [ -d "\$WB_TEST_WT" ] && echo "worktree present at stop" >> "$T/claude.log"; }
+        [ -z "\${WB_TEST_STOP_WRITES:-}" ] || echo late > "\$WB_TEST_STOP_WRITES"
+        [ -z "\${WB_TEST_STOP_FAILS:-}" ] || { echo "stop failed" >&2; exit 1; }
         rm -f "$CLAUDE_SESSIONS_DIR/515151.json"; echo "stopped \$2" ;;
 esac
 FAKE

@@ -268,14 +268,20 @@ _wb_task_bg_jobs() {
 }
 
 # _wb_stop_bg <task_file> — stop the task's background sessions (R18).
-# Prints the last stopped session id, for the record's @primary.
+# Prints the last stopped session id, for the record's @primary. Fails
+# when any session would not stop, so callers leave the task untouched.
 _wb_stop_bg() {
-  local job sid last=""
+  local job sid last="" failed=0
   while IFS=$'\t' read -r job sid; do
-    wb_watchdog 10 claude stop "$job" >/dev/null 2>&1 || echo "wb: could not stop background session $job" >&2
-    last="$sid"
+    if wb_watchdog 10 claude stop "$job" >/dev/null 2>&1 </dev/null; then
+      last="$sid"
+    else
+      echo "wb: could not stop background session $job — it is still running" >&2
+      failed=1
+    fi
   done < <(_wb_task_bg_jobs "$1")
   echo "$last"
+  return "$failed"
 }
 
 # wb_bg_attach <job> <task_file|cwd> — Enter on a bg row (R8). Jumps to a
@@ -367,7 +373,7 @@ cmd_down() {
   branch="$(wb_task_get "$file" branch)"
 
   primary="$(_wb_agent_pane_sid "$session")"
-  bg_sid="$(_wb_stop_bg "$file")"
+  bg_sid="$(_wb_stop_bg "$file")" || { echo "wb down: task left as it was; stop the agent, then re-run" >&2; return 1; }
   [ -z "$bg_sid" ] || primary="$bg_sid"
   snapshot="$(wb_sessions_snapshot "$wt" "$primary")"
   _wb_has_open_pr "$repo_dir" "$branch" && review=1
@@ -411,6 +417,9 @@ _wb_family_close_target() {
 # cmd_done [--close] [session|stem] — close a task: stop its background
 # agent, refuse on uncommitted changes, remove the worktree (the branch
 # stays), and mark the record done. --close also ends the tmux session.
+# The removal is not forced, so anything an agent writes after the check
+# is refused rather than lost; only a worktree that is still clean (its
+# submodules are what git objects to) is forced.
 cmd_done() {
   local close=0 arg="" wt repo_dir dirty note parent target
   while [ $# -gt 0 ]; do
@@ -429,10 +438,17 @@ cmd_done() {
       return 1
     fi
   fi
-  _wb_stop_bg "$file" >/dev/null
+  _wb_stop_bg "$file" >/dev/null || { echo "wb done: task left open; stop the agent, then re-run" >&2; return 1; }
   if [ -n "$wt" ] && [ -d "$wt" ]; then
     cd "$HOME" 2>/dev/null || true
-    git -C "$repo_dir" worktree remove --force "$wt" || { echo "wb done: could not remove $wt" >&2; return 1; }
+    if ! git -C "$repo_dir" worktree remove "$wt" 2>/dev/null; then
+      dirty="$(git -C "$wt" status --porcelain --ignore-submodules=none 2>/dev/null)" || dirty="(git status failed)"
+      if [ -n "$dirty" ]; then
+        { echo "wb done: $wt changed while its agent stopped:"; echo "$dirty"; echo "commit or stash, then re-run"; } >&2
+        return 1
+      fi
+      git -C "$repo_dir" worktree remove --force "$wt" || { echo "wb done: could not remove $wt" >&2; return 1; }
+    fi
     note='Worktree removed'
   else
     note='Closed in the store only: no worktree to remove'
