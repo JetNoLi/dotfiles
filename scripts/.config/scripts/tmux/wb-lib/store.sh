@@ -199,22 +199,6 @@ wb_session_task_file() {
 
 # --- families -----------------------------------------------------------------
 
-# wb_family_stems <file> — the record's whole family: climb parent: links to
-# the root (cycle-safe, depth 20), then the root's tree.
-wb_family_stems() {
-  local -A seen=()
-  local depth=0 current="$1" stem parent root
-  while [ "$depth" -lt 20 ]; do
-    stem="$(wb_task_stem "$current")"
-    seen[$stem]=1; root="$stem"; depth=$(( depth + 1 ))
-    parent="$(wb_task_get "$current" parent)"
-    [ -n "$parent" ] && [ "$parent" != "$stem" ] && [ -z "${seen[$parent]:-}" ] || break
-    current="$(wb_task_file_for_stem "$parent")"
-    [ -f "$current" ] || break
-  done
-  wb_family_tree "$root"
-}
-
 # wb_family_tree <stem> — the stem, then each descendant depth-first, once.
 wb_family_tree() {
   local -A kids=() out=()

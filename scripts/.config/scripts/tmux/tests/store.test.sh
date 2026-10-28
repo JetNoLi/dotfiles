@@ -54,11 +54,11 @@ mk() { printf -- '---\nstatus: doing\nrepo: proj\nparent: %s\n---\n# %s\n' "$2" 
 mk proj--root ""
 mk proj--child proj--root
 mk proj--grandchild proj--child
-assert_eq "the family of a grandchild is the whole tree, root first" \
-  "proj--root proj--child proj--grandchild" "$(wb_family_stems "$TASKS_DIR/proj--grandchild.md" | xargs)"
+assert_eq "a family tree lists the root, then descendants depth-first" \
+  "proj--root proj--child proj--grandchild" "$(wb_family_tree proj--root | xargs)"
 mk proj--loop-a proj--loop-b
 mk proj--loop-b proj--loop-a
-out="$(wb_family_stems "$TASKS_DIR/proj--loop-a.md" | sort | xargs)"
+out="$(wb_family_tree proj--loop-a | sort | xargs)"
 assert_eq "a family with a cycle stops at the repeated stem" "proj--loop-a proj--loop-b" "$out"
 
 finish

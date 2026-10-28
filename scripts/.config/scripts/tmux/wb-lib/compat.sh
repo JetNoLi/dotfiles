@@ -8,7 +8,8 @@ WB_LOCK_WAIT="${WB_LOCK_WAIT:-5}"   # seconds a writer waits for a held task loc
 # --- task locks (KTD4) -------------------------------------------------------
 # One lock directory per task file, named from its basename so two paths to
 # the same task share a lock. mkdir is atomic on both platforms; the pid file
-# inside lets a later writer take over a lock whose holder died.
+# inside lets a later writer take over a lock whose holder died, so a verb
+# that exits mid-write needs no cleanup trap.
 
 _wb_lock_path() {
   printf '%s/locks/%s.lock\n' "$WB_STATE_DIR" "$(basename -- "$1")"
@@ -33,7 +34,6 @@ wb_lock_acquire() {
     waited=$(( waited + 1 ))
   done
   echo "$BASHPID" > "$lock/pid"
-  WB_HELD_LOCKS+=("$lock")
 }
 
 # wb_lock_release <task_file> — drops the lock only if this process holds it.
@@ -42,16 +42,6 @@ wb_lock_release() {
   [ "$(cat "$lock/pid" 2>/dev/null)" = "$BASHPID" ] && rm -rf "$lock"
   return 0
 }
-
-# wb_lock_release_all — EXIT-trap backstop for locks a failed verb left held.
-wb_lock_release_all() {
-  local lock
-  for lock in "${WB_HELD_LOCKS[@]}"; do
-    [ "$(cat "$lock/pid" 2>/dev/null)" = "$BASHPID" ] && rm -rf "$lock"
-  done
-  WB_HELD_LOCKS=()
-}
-WB_HELD_LOCKS=()
 
 # --- time -------------------------------------------------------
 

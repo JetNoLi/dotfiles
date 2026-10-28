@@ -1,6 +1,6 @@
 # Dotfiles and AI workflow roadmap
 
-Last updated 2026-10-27. This is the living record of where the dotfiles and the AI workflow are heading. Plans and verdicts live in the files it links to; this page says how they fit together.
+Last updated 2026-10-28. This is the living record of where the dotfiles and the AI workflow are heading. Plans and verdicts live in the files it links to; this page says how they fit together.
 
 ## End state
 
@@ -17,7 +17,7 @@ Rule: an alternative doesn't count as tested until it has a verdict in `docs/wb-
 
 | Piece | What it is | Status | Where it lives |
 |---|---|---|---|
-| Mac picker with native status | The `wb` picker and `wb new` on `prefix+a`, carved out of wb. Status comes from Claude Code's session data, background sessions are rows, and there is a local `~/tasks` store. | Planned, not started | `docs/plans/2026-10-26-0035-feat-mac-picker-native-status-plan.md` |
+| Mac picker with native status | The `wb` picker and `wb new` on `prefix+a`, carved out of wb. Status comes from Claude Code's session data, background sessions are rows, and there is a local `~/tasks` store. | Built on `feat/mac-picker-native-status`, in use; verdicts open | `docs/plans/2026-10-26-0035-feat-mac-picker-native-status-plan.md`, `docs/wb-mac/comparisons.md` |
 | Automatic checkpoints | Hooks write draft handoffs into the task record on compact and at the end of a session, and `/wb-save` and `/wb-resume` become optional. | Idea | Depends on the picker's task store and seam |
 | Messaging and family coordinators | Claude's cross-session messaging replaces send-keys handoffs. One coordinator session per family dispatches two or three workers. | Idea | Builds on background rows from the picker |
 | Realms | The git remote decides which task store a record goes to, and a guard blocks writes across that line. | Idea | Most likely lands with the migration |
@@ -47,6 +47,6 @@ Dependencies, in short:
 
 ## Open threads
 
-- Whether background sessions appear in Claude Code's session registry. The picker plan settles this when it is built.
+- `wb new` puts worktrees in `<repo>/.worktrees/`, which nothing ignores on the Mac yet, so they show as untracked in the main checkout. A global git ignore entry would cover every repo.
 - Which of checkpoints, messaging and realms gets tried on the Mac next.
 - When the full migration starts.
