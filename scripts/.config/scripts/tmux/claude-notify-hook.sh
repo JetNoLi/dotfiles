@@ -32,7 +32,8 @@ case "${1:-}" in
       [ -n "$sid" ] && { tmux set -p -t "$P" @claude_session_id "$sid" 2>/dev/null || true; }
     fi
     ;;
-  needs-input)  # blocked on you (permission / question / idle prompt)
+  needs-input)  # blocked on you (permission / question / idle prompt); wb
+                # uses it only for panes the session registry can't place
     tmux set -p -t "$P" @claude_blocked needs-input 2>/dev/null || true
     ;;
   done)         # always clear working; flag "done" only for long turns

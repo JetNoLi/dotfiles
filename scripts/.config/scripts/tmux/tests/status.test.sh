@@ -42,6 +42,13 @@ tmux set -p -t "$pane1" @claude_blocked nvim-buffer
 assert_eq "AE3: an nvim decision buffer over registry idle gives needs you" needs-input "$(status_of "$pane1")"
 tmux set -p -t "$pane1" @claude_blocked done
 assert_eq "the done marker gives finished" done "$(status_of "$pane1")"
+# Approving a permission prompt fires no hook, so needs-input outlives it;
+# a live registry entry knows better.
+registry "$pid1" busy "$pane1"
+tmux set -p -t "$pane1" @claude_blocked needs-input
+assert_eq "a stale needs-input marker yields to registry busy" working "$(status_of "$pane1")"
+assert_eq "and without a registry entry it still gives needs you" needs-input \
+  "$(CLAUDE_SESSIONS_DIR="$T/no-such-dir" status_of "$pane1")"
 tmux set -pu -t "$pane1" @claude_blocked
 
 # --- fallback ----------------------------------------------------------------------
