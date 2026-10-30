@@ -12,7 +12,7 @@ CLAUDE_SESSIONS_DIR="${CLAUDE_SESSIONS_DIR:-$HOME/.claude/sessions}"
 
 # --- process table -------------------------------------------------------------
 
-declare -gA WB_PS_START=() WB_PS_CMD=() WB_PS_KIDS=()
+declare -gA WB_PS_START=() WB_PS_CMD=() WB_PS_KIDS=() WB_PS_PARENT=()
 WB_PS_LOADED=""
 
 _wb_ps_load() {
@@ -23,6 +23,7 @@ _wb_ps_load() {
     WB_PS_START[$pid]="$d1 $d2 $d3 $d4 $d5"
     WB_PS_CMD[$pid]="$cmd"
     WB_PS_KIDS[$ppid]+=" $pid"
+    WB_PS_PARENT[$pid]="$ppid"
   done < <(TZ=UTC LC_ALL=C ps -Ao pid=,ppid=,lstart=,command= 2>/dev/null)
 }
 
@@ -43,7 +44,7 @@ _wb_pane_claude_pid() {
 
 # --- session registry -------------------------------------------------------------
 
-declare -gA WB_REG_BY_PANE=() WB_REG_BY_JOB=() WB_REG_BY_SID=()
+declare -gA WB_REG_BY_PANE=() WB_REG_BY_JOB=() WB_REG_BY_SID=() WB_REG_BY_PID=()
 WB_REG_LOADED=""
 WB_REG_ROWS=()
 
@@ -70,6 +71,7 @@ _wb_registry_load() {
     [ -n "${rec[3]}" ] && WB_REG_BY_PANE[${rec[3]}]="$i"
     [ -n "${rec[7]}" ] && WB_REG_BY_JOB[${rec[7]}]="$i"
     WB_REG_BY_SID[${rec[1]}]="$i"
+    WB_REG_BY_PID[$pid]="$i"
   done < <(
     for f in "$CLAUDE_SESSIONS_DIR"/*.json; do
       [ -f "$f" ] && printf '%s\n' "$(tr -d '\n' < "$f")"

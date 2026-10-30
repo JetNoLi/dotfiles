@@ -159,11 +159,21 @@ wb_task_worktree_abs() {
   echo "$repo_path/$wt"
 }
 
-# wb_task_append_handoff <file> <source> <message> — a dated entry at the end
-# of the Handoffs section, creating the section before Decisions if needed.
-wb_task_append_handoff() {
+# wb_entry_demote — stdin to stdout with `#`, `##` and `###` headings pushed
+# down to `####`, so an entry body can't open a section or a sibling entry.
+wb_entry_demote() { sed -E 's/^#{1,3}( |$)/####\1/'; }
+
+# wb_task_append_handoff <file> <source> <message> — an automatic entry,
+# `### <date> — <source> (auto)`, from wb down, done and resume.
+wb_task_append_handoff() { wb_task_append_entry "$1" "$2 (auto)" "$3"; }
+
+# wb_task_append_entry <file> <label> <body> — `### <date> — <label>` at the
+# end of the Handoffs section, creating the section before Decisions if
+# needed (KTD6). The label types the entry: `checkpoint`, `from <stem>`, or
+# `<verb> (auto)`.
+wb_task_append_entry() {
   local body
-  body="### $(date '+%Y-%m-%d %H:%M') — $2 (auto)"$'\n\n'"$3"
+  body="### $(date '+%Y-%m-%d %H:%M') — $2"$'\n\n'"$(printf '%s\n' "$3" | wb_entry_demote)"
   WB_APPEND_BODY="$body" awk '
     BEGIN { body = ENVIRON["WB_APPEND_BODY"]; target = "## Handoffs" }
     FNR == 1 { pass++; prev = "" }
@@ -183,6 +193,56 @@ wb_task_append_handoff() {
       }
     }
   ' "$1" "$1" > "$1.tmp.$$" && mv "$1.tmp.$$" "$1"
+}
+
+# wb_task_set_decision <file> <title> <body> — the Decisions entry
+# `### <title>`, replaced in place when one has that title, else appended at
+# the end of the section. A file without the section gets it before Done.
+wb_task_set_decision() {
+  local body
+  body="### $2"$'\n\n'"$(printf '%s\n' "$3" | wb_entry_demote)"
+  WB_DECISION_HEAD="### $2" WB_DECISION_BODY="$body" awk '
+    BEGIN { head = ENVIRON["WB_DECISION_HEAD"]; body = ENVIRON["WB_DECISION_BODY"]; target = "## Decisions" }
+    function put() { if (prev != "") print ""; print body; print ""; done = 1 }
+    FNR == 1 { pass++; prev = "" }
+    pass == 1 { if ($0 == target) exists = 1; if (exists && $0 == head) replace = 1; next }
+    $0 == target { insection = 1; print; prev = $0; next }
+    insection && skipping && /^###? / { skipping = 0 }
+    insection && skipping { next }
+    insection && replace && $0 == head && !done { put(); skipping = 1; next }
+    insection && /^## / { insection = 0; if (!done) put() }
+    !exists && !done && $0 == "## Done" { print target; print ""; print body; print ""; done = 1 }
+    { print; prev = $0 }
+    END {
+      if (!done) {
+        if (prev != "") print ""
+        if (!insection) { print target; print "" }
+        print body
+      }
+    }
+  ' "$1" "$1" > "$1.tmp.$$" && mv "$1.tmp.$$" "$1"
+}
+
+# wb_task_pickup <file> — the latest checkpoint entry, then every Handoffs
+# entry after it under "== Since this checkpoint ==". "Latest" is by
+# position in the section, not by date (KTD6). Fails, printing nothing,
+# when the task has no checkpoint.
+wb_task_pickup() {
+  awk '
+    $0 == "## Handoffs" { insection = 1; next }
+    insection && /^## / { insection = 0 }
+    !insection { next }
+    /^### / { n++; if ($0 ~ / — checkpoint$/) last = n }
+    n { entry[n] = entry[n] $0 "\n" }
+    END {
+      if (!last) exit 1
+      e = entry[last]; sub(/\n+$/, "\n", e); printf "%s", e
+      if (last < n) {
+        print ""; print "== Since this checkpoint =="
+        for (i = last + 1; i <= n; i++) { e = entry[i]; sub(/\n+$/, "\n", e); print ""; printf "%s", e }
+      }
+    }
+  ' "$1"
 }
 
 # wb_session_task_file <session> — the record a tmux session works on: its

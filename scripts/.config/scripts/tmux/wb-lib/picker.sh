@@ -227,7 +227,10 @@ _rename() {
   if [ "$kind" = bg ]; then
     wb_task_exists "$ref" || { _wb_hold "this background session has no task to rename"; return 0; }
     read -r -p "Rename task '$(wb_task_title "$ref")' to: " new
-    [ -n "$new" ] && wb_task_set_title "$ref" "$new"
+    [ -n "$new" ] || return 0
+    wb_lock_acquire "$ref" || { _wb_hold "the task is busy; try again"; return 0; }
+    wb_task_set_title "$ref" "$new"
+    wb_lock_release "$ref"
     return 0
   fi
   [ -n "$session" ] || return 0

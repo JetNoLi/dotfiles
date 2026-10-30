@@ -10,6 +10,12 @@
 #   wb done [--close] [session|task]
 #                          close: stop the agent, remove the worktree (--close: and the session)
 #   wb resume <task>       rebuild a parked task's session, warm resume typed in
+#   wb checkpoint          stdin → a checkpoint in this session's task (/handoff)
+#   wb handoff-to <task>   stdin → a "from <this task>" entry in another task
+#   wb decision <title>    stdin → that Decisions entry in this session's task
+#   wb pickup              the latest checkpoint and every entry since it
+#   wb task-for-session    this session's task file
+#                          (the last five take --task <task> or --session-id <id>)
 #   wb help                this text
 
 # Checked before anything bash 5 only is parsed: namerefs, `local -A`,
@@ -43,6 +49,11 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
     down)        shift; cmd_down "$@" ;;
     done)        shift; cmd_done "$@" ;;
     resume)      shift; cmd_resume "$@" ;;
+    checkpoint)  shift; cmd_checkpoint "$@" ;;
+    handoff-to)  shift; cmd_handoff_to "$@" ;;
+    decision)    shift; cmd_decision "$@" ;;
+    pickup)      shift; cmd_pickup "$@" ;;
+    task-for-session) shift; cmd_task_for_session "$@" ;;
     render)      shift; render_rows "$@" ;;
     # fzf binds
     _new)        shift; _new "$@" ;;
