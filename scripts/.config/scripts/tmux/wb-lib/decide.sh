@@ -80,3 +80,33 @@ cmd_decide_clear() {
   fi
   [ "$ref" != --all ] && [ -s "$f" ] || rm -f "$f"
 }
+
+# cmd_decide_spec_check <spec.json> — check a /decide page spec before it is
+# published, printing each problem. The fields are described in the decide
+# skill's references/page-spec.md.
+cmd_decide_spec_check() {
+  local problems
+  [ -f "${1:-}" ] || { echo "usage: wb decide-spec-check <spec.json>" >&2; return 1; }
+  jq empty "$1" 2>/dev/null || { echo "wb decide-spec-check: $1 isn't valid JSON" >&2; return 1; }
+  problems="$(jq -r '
+    def str: type == "string" and length > 0;
+    [ (if (.title | str) then empty else "title is missing" end),
+      (if .layout == "items" or .layout == "verdicts" then empty else "layout must be \"items\" or \"verdicts\"" end),
+      (if (.items | type) == "array" and (.items | length) > 0 then empty else "items must be a non-empty list" end),
+      ((.items // [])[] | select((.id | str) | not) | "an item has no id: \(.title // "untitled")"),
+      ((.items // [])[] | select((.title | str) | not) | "item \(.id // "?") has no title"),
+      ([(.items // [])[].id | select(str)] | group_by(.)[] | select(length > 1) | "item id \(.[0]) is used twice"),
+      (if .layout == "items" then
+         (.items // [])[] | select(((.options | type) == "array" and (.options | length) >= 2 and all(.options[]; .id | str)) | not)
+         | "item \(.id // "?") needs at least two options, each with an id"
+       else empty end),
+      (if .layout == "verdicts" then
+         (if (.verdicts | type) == "array" and (.verdicts | length) >= 2 and all(.verdicts[]; (.id | str) and (.label | str)) then empty
+          else "verdicts must list at least two, each with an id and label" end),
+         ([(.verdicts // [])[].id] as $v | (.items // [])[] | select(.suggested as $s | $s != null and ($v | index($s)) == null)
+          | "item \(.id // "?") suggests \(.suggested), which is not one of the verdicts")
+       else empty end)
+    ] | .[]' "$1" 2>&1)" || { echo "wb decide-spec-check: $1 has the wrong shape: $problems" >&2; return 1; }
+  [ -z "$problems" ] || { printf 'wb decide-spec-check: %s\n' "$problems" >&2; return 1; }
+  echo "ok"
+}

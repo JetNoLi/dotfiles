@@ -1,0 +1,388 @@
+<title>Decisions</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column of decision items, a sticky tally bar on top,
+   Submit at the foot. Shared-verdict items are compact rows; per-item
+   options are fuller blocks. */
+:root {
+  --bg: #f6f7f8;
+  --surface: #ffffff;
+  --fg: #1b2228;
+  --muted: #5d6a74;
+  --line: #d9dee2;
+  --accent: #0f6e6e;
+  --accent-ink: #ffffff;
+  --accent-soft: #e1f0ef;
+  --suggest: #8a5a00;
+  --suggest-soft: #fbf1dc;
+  --warn: #a33a2b;
+  --code-bg: #eef1f3;
+  --font-ui: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12171b; --surface: #1a2126; --fg: #e4e9ec; --muted: #94a2ac; --line: #2c363d;
+    --accent: #4fb8b4; --accent-ink: #08201f; --accent-soft: #173331;
+    --suggest: #e3b45c; --suggest-soft: #33291a; --warn: #f08a78; --code-bg: #222b31;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12171b; --surface: #1a2126; --fg: #e4e9ec; --muted: #94a2ac; --line: #2c363d;
+  --accent: #4fb8b4; --accent-ink: #08201f; --accent-soft: #173331;
+  --suggest: #e3b45c; --suggest-soft: #33291a; --warn: #f08a78; --code-bg: #222b31;
+  color-scheme: dark;
+}
+
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--font-ui); font-size: 15px; line-height: 1.55;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); }
+.wrap {
+  max-width: 760px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+header.page { padding-block: 28px 8px; display: grid; gap: 8px; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+h1 { font-size: 26px; line-height: 1.2; margin: 0; font-weight: 650; text-wrap: balance; }
+.intro { color: var(--muted); margin: 0; max-width: 65ch; }
+
+.bar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  background: var(--surface); border-bottom: 1px solid var(--line);
+}
+.bar .wrap { display: flex; align-items: center; gap: 12px; padding-block: 10px; flex-wrap: wrap; }
+.tally { font-variant-numeric: tabular-nums; font-weight: 600; }
+.meter { flex: 1 1 120px; height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; min-width: 80px; }
+.meter i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+.saved { font-size: 13px; color: var(--muted); }
+
+.notice { margin-block: 16px 0; padding: 10px 12px; border: 1px solid var(--warn); color: var(--warn); border-radius: 6px; }
+
+main { display: grid; gap: 14px; padding-block: 18px 8px; }
+.item { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.item.answered { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.item-head { display: flex; gap: 10px; align-items: baseline; }
+.item-id { font-family: var(--font-mono); font-size: 12px; color: var(--muted); flex: none; }
+.item h2 { font-size: 17px; margin: 0; font-weight: 600; text-wrap: balance; min-width: 0; }
+.ctx { display: grid; gap: 8px; min-width: 0; }
+.ctx p { margin: 0; max-width: 65ch; }
+code { font-family: var(--font-mono); font-size: .88em; background: var(--code-bg); padding: 1px 4px; border-radius: 3px; }
+pre { margin: 0; background: var(--code-bg); padding: 10px 12px; border-radius: 6px; overflow-x: auto; font-family: var(--font-mono); font-size: 13px; line-height: 1.5; }
+pre code { background: none; padding: 0; }
+.tbl { overflow-x: auto; }
+table { border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+.fig { overflow-x: auto; }
+.fig svg { max-width: 100%; height: auto; color: var(--fg); }
+
+.options { display: grid; gap: 8px; }
+.opt {
+  display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; align-items: start; text-align: left;
+  font: inherit; color: inherit; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; cursor: pointer;
+}
+.opt .mark { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--muted); margin-top: 3px; grid-row: span 2; }
+.opt .label { font-weight: 600; }
+.opt .detail { color: var(--muted); font-size: 14px; grid-column: 2; }
+.opt .rec { font-family: var(--font-mono); font-size: 11px; color: var(--suggest); margin-left: 6px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; }
+.opt[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.opt[aria-pressed="true"] .mark { border-color: var(--accent); background: radial-gradient(var(--accent) 45%, transparent 50%); }
+.opt:hover { border-color: var(--accent); }
+
+.verdicts { display: flex; flex-wrap: wrap; gap: 6px; }
+.v {
+  font: inherit; font-size: 14px; color: inherit; background: var(--bg); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; cursor: pointer;
+}
+.v.suggested { border-style: dashed; border-color: var(--suggest); background: var(--suggest-soft); }
+.v[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border: 1px solid var(--accent); }
+.item.compact { gap: 8px; padding: 12px 14px; }
+.sugg-note { font-size: 13px; color: var(--suggest); }
+
+.note label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 4px; }
+textarea {
+  width: 100%; box-sizing: border-box; min-height: 2.6em; resize: vertical; font: inherit; font-size: 14px; color: var(--fg);
+  background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px;
+}
+button:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+footer.submit { padding-block: 16px 40px; display: grid; gap: 10px; justify-items: start; }
+.primary {
+  font: inherit; font-weight: 600; background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 6px; padding: 10px 20px; cursor: pointer;
+}
+.primary:disabled { opacity: .5; cursor: default; }
+.status { color: var(--muted); margin: 0; max-width: 65ch; }
+.status.ok { color: var(--accent); }
+.status.err { color: var(--warn); }
+.empty { color: var(--muted); padding-block: 24px; }
+@media (prefers-reduced-motion: reduce) { .meter i { transition: none; } }
+</style>
+
+<header class="page wrap">
+  <div class="eyebrow" id="eyebrow">Decisions</div>
+  <h1 id="title">Loading the questions…</h1>
+  <p class="intro" id="intro"></p>
+</header>
+<div class="bar">
+  <div class="wrap">
+    <span class="tally" id="tally">0 of 0 answered</span>
+    <span class="meter" aria-hidden="true"><i id="meter"></i></span>
+    <span class="saved" id="saved">Answers save as you choose.</span>
+  </div>
+</div>
+<div class="wrap">
+  <p class="notice" id="notice" hidden></p>
+  <main id="items"><p class="empty">The questions appear here once the page loads.</p></main>
+  <footer class="submit">
+    <button class="primary" id="submit" type="button" disabled>Submit answers</button>
+    <p class="status" id="status">You can leave and come back. Submit when you're done, even with some left blank.</p>
+  </footer>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const state = { spec: null, answers: {}, db: null, notes: {} };
+
+  // Text blocks: blank lines split paragraphs; `code` spans stay literal.
+  function paras(text) {
+    const frag = document.createDocumentFragment();
+    String(text || "").split(/\n\s*\n/).forEach((chunk) => {
+      if (!chunk.trim()) return;
+      const p = document.createElement("p");
+      chunk.split(/(`[^`]+`)/).forEach((part) => {
+        if (part.startsWith("`") && part.endsWith("`") && part.length > 1) {
+          const c = document.createElement("code"); c.textContent = part.slice(1, -1); p.append(c);
+        } else p.append(part);
+      });
+      frag.append(p);
+    });
+    return frag;
+  }
+
+  // An SVG diagram from the spec, with scripts and event handlers removed.
+  function svgBlock(markup) {
+    const doc = new DOMParser().parseFromString(String(markup), "image/svg+xml");
+    const svg = doc.documentElement;
+    if (!svg || svg.nodeName.toLowerCase() !== "svg") return null;
+    svg.querySelectorAll("script, foreignObject").forEach((n) => n.remove());
+    [svg, ...svg.querySelectorAll("*")].forEach((el) => {
+      [...el.attributes].forEach((a) => {
+        if (/^on/i.test(a.name) || /javascript:/i.test(a.value)) el.removeAttribute(a.name);
+      });
+    });
+    const box = document.createElement("div"); box.className = "fig";
+    box.append(document.importNode(svg, true));
+    return box;
+  }
+
+  function blocks(item) {
+    const out = document.createElement("div"); out.className = "ctx";
+    if (item.context) out.append(paras(item.context));
+    (item.blocks || []).forEach((b) => {
+      if (b.type === "text") out.append(paras(b.text));
+      else if (b.type === "code") {
+        const pre = document.createElement("pre"), c = document.createElement("code");
+        c.textContent = b.text || ""; pre.append(c); out.append(pre);
+      } else if (b.type === "table") {
+        const wrap = document.createElement("div"), t = document.createElement("table");
+        wrap.className = "tbl";
+        if (b.head) { const tr = t.createTHead().insertRow(); b.head.forEach((h) => { const th = document.createElement("th"); th.textContent = h; tr.append(th); }); }
+        const body = t.createTBody();
+        (b.rows || []).forEach((r) => { const tr = body.insertRow(); r.forEach((cell) => { tr.insertCell().textContent = cell; }); });
+        wrap.append(t); out.append(wrap);
+      } else if (b.type === "svg") {
+        const fig = svgBlock(b.svg); if (fig) out.append(fig);
+      }
+    });
+    return out;
+  }
+
+  // A choice: what Jet picked, else (shared-verdict layout) the suggestion.
+  function effective(item) {
+    const a = state.answers[item.id];
+    if (a && a.choice) return { choice: a.choice, suggested: false };
+    if (state.spec.layout === "verdicts" && item.suggested) return { choice: item.suggested, suggested: true };
+    return null;
+  }
+
+  function noteField(item) {
+    const wrap = document.createElement("div"); wrap.className = "note";
+    const id = "note-" + item.id;
+    const label = document.createElement("label"); label.htmlFor = id;
+    label.textContent = state.spec.layout === "verdicts" ? "Note (optional)" : "Other, or a note (optional)";
+    const ta = document.createElement("textarea"); ta.id = id; ta.rows = 1;
+    ta.value = (state.answers[item.id] && state.answers[item.id].note) || "";
+    ta.addEventListener("input", () => {
+      clearTimeout(state.notes[item.id]);
+      state.notes[item.id] = setTimeout(() => save(item, { note: ta.value }), 600);
+    });
+    wrap.append(label, ta);
+    return wrap;
+  }
+
+  function renderItem(item, n) {
+    const el = document.createElement("section");
+    el.className = "item" + (state.spec.layout === "verdicts" ? " compact" : "");
+    el.dataset.id = item.id;
+    el.setAttribute("data-comment-target", "");
+    const head = document.createElement("div"); head.className = "item-head";
+    const num = document.createElement("span"); num.className = "item-id"; num.textContent = String(n).padStart(2, "0");
+    const h = document.createElement("h2"); h.textContent = item.title;
+    head.append(num, h);
+    el.append(head, blocks(item));
+
+    const eff = effective(item);
+    if (state.spec.layout === "verdicts") {
+      const row = document.createElement("div"); row.className = "verdicts"; row.setAttribute("role", "group");
+      row.setAttribute("aria-label", "Verdict for " + item.title);
+      state.spec.verdicts.forEach((v) => {
+        const b = document.createElement("button"); b.type = "button"; b.className = "v"; b.textContent = v.label;
+        const picked = eff && eff.choice === v.id;
+        b.setAttribute("aria-pressed", picked && !eff.suggested ? "true" : "false");
+        if (picked && eff.suggested) b.classList.add("suggested");
+        b.addEventListener("click", () => save(item, { choice: v.id }));
+        row.append(b);
+      });
+      el.append(row);
+      if (eff && eff.suggested) {
+        const s = document.createElement("div"); s.className = "sugg-note";
+        s.textContent = "Suggested. Leave it to accept, or pick another.";
+        el.append(s);
+      }
+    } else {
+      const opts = document.createElement("div"); opts.className = "options"; opts.setAttribute("role", "group");
+      opts.setAttribute("aria-label", "Options for " + item.title);
+      (item.options || []).forEach((o) => {
+        const b = document.createElement("button"); b.type = "button"; b.className = "opt";
+        b.setAttribute("aria-pressed", eff && eff.choice === o.id ? "true" : "false");
+        const mark = document.createElement("span"); mark.className = "mark";
+        const label = document.createElement("span"); label.className = "label"; label.textContent = o.label;
+        if (o.recommended) { const r = document.createElement("span"); r.className = "rec"; r.textContent = "recommended"; label.append(r); }
+        b.append(mark, label);
+        if (o.detail) { const d = document.createElement("span"); d.className = "detail"; d.textContent = o.detail; b.append(d); }
+        b.addEventListener("click", () => save(item, { choice: o.id }));
+        opts.append(b);
+      });
+      el.append(opts);
+    }
+    el.append(noteField(item));
+    if (eff) el.classList.add("answered");
+    return el;
+  }
+
+  function renderAll() {
+    const items = state.spec.items;
+    const box = $("items");
+    // Keep a note being typed: re-render only the choice state of each item.
+    if (box.dataset.ready) {
+      items.forEach((item, i) => {
+        const old = box.querySelector(`[data-id="${CSS.escape(item.id)}"]`);
+        const ta = old && old.querySelector("textarea");
+        const focused = ta && document.activeElement === ta;
+        const fresh = renderItem(item, i + 1);
+        if (focused) { fresh.querySelector("textarea").replaceWith(ta); }
+        old.replaceWith(fresh);
+        if (focused) ta.focus();
+      });
+    } else {
+      box.replaceChildren(...items.map((it, i) => renderItem(it, i + 1)));
+      box.dataset.ready = "1";
+    }
+    const done = items.filter((it) => effective(it)).length;
+    $("tally").textContent = `${done} of ${items.length} answered`;
+    $("meter").style.width = (items.length ? (100 * done / items.length) : 0) + "%";
+  }
+
+  async function save(item, patch) {
+    const prev = state.answers[item.id] || {};
+    const next = { ...prev, ...patch, updatedAt: new Date().toISOString() };
+    state.answers[item.id] = next;
+    renderAll();
+    if (!state.db) return;
+    $("saved").textContent = "Saving…";
+    try {
+      await state.db.doc("answers/" + item.id).set(next);
+      $("saved").textContent = "Saved.";
+    } catch (e) {
+      $("saved").textContent = "Not saved: " + ((e && e.message) || "the store refused the write") + ". Try again.";
+    }
+  }
+
+  async function submit() {
+    const btn = $("submit"), status = $("status");
+    btn.disabled = true;
+    const items = state.spec.items;
+    const answered = items.filter((it) => effective(it)).length;
+    try {
+      await state.db.doc("meta/submitted").set({ at: new Date().toISOString(), answered, total: items.length });
+    } catch (e) {
+      status.className = "status err";
+      status.textContent = "Submit wasn't saved: " + ((e && e.message) || "the store refused the write") + ". Try again.";
+      btn.disabled = false;
+      return;
+    }
+    // Waking the session: a comment sent to Claude, from this click.
+    let sent = false;
+    try {
+      const comments = await claude.use("comments");
+      if (comments && (await comments.canSendToClaude()) === "available") {
+        await comments.sendToClaude({
+          anchor: await comments.anchorFor(btn),
+          text: `Submitted: ${answered} of ${items.length} answered. Read the answers from this page's store and record them.`,
+        });
+        sent = true;
+      }
+    } catch (e) { sent = false; }
+    status.className = "status ok";
+    status.textContent = sent
+      ? "Submitted and sent to Claude. The session picks the answers up now."
+      : "Submitted. Tell the session \"done\" to collect the answers.";
+    btn.disabled = false;
+    btn.textContent = "Submit again";
+  }
+
+  async function start() {
+    let spec;
+    try {
+      const res = await fetch("spec.json", { cache: "no-store" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      spec = await res.json();
+    } catch (e) {
+      $("title").textContent = "The questions didn't load";
+      $("intro").textContent = "This page reads spec.json beside it, and that read failed. Ask the session to publish the page again.";
+      return;
+    }
+    state.spec = spec;
+    document.title = spec.title || "Decisions";
+    $("title").textContent = spec.title || "Decisions";
+    $("intro").textContent = spec.intro || "";
+    $("eyebrow").textContent = spec.task ? spec.task : "Decisions";
+    renderAll();
+
+    state.db = await claude.use("db");
+    if (!state.db) {
+      $("notice").hidden = false;
+      $("notice").textContent = "Answers can't be saved in this view. Open the page in claude.ai, signed in.";
+      $("saved").textContent = "Not saving.";
+      return;
+    }
+    $("submit").disabled = false;
+    $("submit").addEventListener("click", submit);
+    state.db.collection("answers").onSnapshot((snap) => {
+      snap.docs.forEach((d) => {
+        if (!d.exists) return;
+        const mine = state.answers[d.id], theirs = d.data();
+        if (!mine || (theirs.updatedAt || "") >= (mine.updatedAt || "")) state.answers[d.id] = { ...theirs };
+      });
+      renderAll();
+    }, (e) => { $("saved").textContent = "Live updates stopped: " + ((e && e.message) || "store error") + ". Reload the page."; });
+  }
+
+  start();
+})();
+</script>

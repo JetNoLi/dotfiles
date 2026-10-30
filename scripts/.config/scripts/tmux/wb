@@ -21,6 +21,7 @@
 #   wb decide-buffer <file>  edit it in an nvim split; returns when the split closes
 #   wb decide-open <buffer|page> <file|url>  mark a /decide surface as waiting on Jet
 #   wb decide-clear <file|url>|--all          it's answered and recorded
+#   wb decide-spec-check <spec.json>          check a /decide page spec
 #                          (from checkpoint on, each takes --task <task> or --session-id <id>)
 #   wb help                this text
 
@@ -66,6 +67,7 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
     decide-buffer) shift; cmd_decide_buffer "$@" ;;
     decide-open) shift; cmd_decide_open "$@" ;;
     decide-clear) shift; cmd_decide_clear "$@" ;;
+    decide-spec-check) shift; cmd_decide_spec_check "$@" ;;
     render)      shift; render_rows "$@" ;;
     # fzf binds
     _new)        shift; _new "$@" ;;

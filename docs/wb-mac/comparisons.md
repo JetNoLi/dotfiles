@@ -110,3 +110,16 @@ U5's test run. This session sent with `SendMessage` to real probe sessions on a 
 - **So R9's fallback (switching Jet to the session with the context on the tmux buffer) was not built.** Messaging worked for both kinds of session.
 - **Names (KTD11).** A pane session started without `-n` gets an automatic name (`ac-b3`, `pb-b7`), not the wb stem. Its `ListAgents` row does show `tmux <session>:@…`, and wb's session name is the stem. `/handoff <task>` matches either a row named for the stem (background jobs, which `wb new --bg` names) or a row whose tmux session is the stem. No launch needs `-n`.
 - **End to end:** `/handoff probe--pb` from one task wrote the `from probe--ac` entry, messaged the unnamed live session, and the receiver did the work. `/handoff new probe-child` made the worktree, session and seeded task (parent set), and its background Claude began the Next step without asking.
+
+## Probe findings: the `/decide` page and its Submit wake (2026-10-30, Claude Code 2.1.314)
+
+U6's wake test used two throwaway pages, one per layout, published with the `db` and `comments` capabilities. Jet pressed Submit himself.
+
+- **Can page code send a comment to Claude?** Yes. The `comments` capability has `sendToClaude`, editors only and only from the viewer's own click, with `canSendToClaude` to check first. Submit uses it after writing `meta/submitted`.
+- **Does Submit wake an idle session that published the page?** Yes. The watch's auto-reply posted a one-line acknowledgement in the thread, and then the session got an `artifact-auto-react` notification that started a turn. About a minute passed between the click and the turn. **Proven, so Submit is the default, and "done" is the fallback.**
+- **After a U3 restart?** No. The restarted session re-watches the page with `ArtifactComments`, but a watch arms auto-replies only when the link is in Jet's own message. The pick-up hook's text doesn't count. So after a restart, `/decide` tells Jet to type "done" (or to paste the link back, which arms it). The "done" path, with the session the probe restarted, recorded the answered rows and left the rest open.
+- **A session busy in a tool call** when Submit arrived got no turn for it. The auto-reply still answered in the thread. "done" covers that case.
+- **The auto-reply can mislead.** It has no task context and may say it "recorded" answers that never reach the task file. The skill tells Claude to ignore that and record them itself.
+- **Saving:** answers wrote per click (notes after a 0.6-second pause) and survived a reload. `meta/submitted` held the answered count.
+- **Content, from Jet's answers:** title-only rows and items without trade-offs came back as "need more info". Every item now needs options, pros and cons, and a recommendation (`references/page-spec.md`), and a note asking for information counts as unanswered.
+- **Page name:** the template's `<title>` names the artifact over the publish title, so the skill sets it from the spec.
