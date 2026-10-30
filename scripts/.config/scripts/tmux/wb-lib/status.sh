@@ -83,6 +83,15 @@ _wb_registry_load() {
   )
 }
 
+# _wb_registry_reload — drop the cached process table and registry and read
+# them again, for a long-running caller that polls them.
+_wb_registry_reload() {
+  WB_REG_LOADED=""; WB_PS_LOADED=""; WB_REG_ROWS=()
+  WB_REG_BY_PANE=(); WB_REG_BY_JOB=(); WB_REG_BY_SID=(); WB_REG_BY_PID=()
+  WB_PS_START=(); WB_PS_CMD=(); WB_PS_KIDS=()
+  _wb_registry_load
+}
+
 # wb_registry_field <index> <n> — field n (0-based) of a loaded entry.
 wb_registry_field() {
   local -a rec

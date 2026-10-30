@@ -136,6 +136,12 @@ cmd_pickup() {
 # task's Claude to pick up its checkpoint. It holds "wait" or "start".
 wb_pickup_marker() { printf '%s/pickup/%s\n' "$WB_STATE_DIR" "$1"; }
 
+# wb_pickup_mark <stem> <wait|start> — write that marker.
+wb_pickup_mark() {
+  local f; f="$(wb_pickup_marker "$1")"
+  mkdir -p "${f%/*}" && echo "$2" > "$f"
+}
+
 # --- auto-clear (KTD3) ---------------------------------------------------------------
 # /handoff asks for a clean context with `wb clear-request`. The Stop hook
 # (claude-autoclear.sh) claims the request once the turn ends and restarts
@@ -158,10 +164,10 @@ cmd_clear_request() {
   local marker
   _wb_entry_task clear-request "$@" || return 1
   marker="$(wb_clear_marker "$(wb_task_stem "$WB_TASK")")"
-  mkdir -p "${marker%/*}" "$(dirname "$(wb_pickup_marker x)")"
+  mkdir -p "${marker%/*}"
   printf 'sid=%s\npane=%s\ncreated=%s\n' "${WB_LOOKUP_SID:-}" "${WB_LOOKUP_PANE:-}" "$(date +%s)" > "$marker.tmp.$$"
   mv "$marker.tmp.$$" "$marker"
-  echo wait > "$(wb_pickup_marker "$(wb_task_stem "$WB_TASK")")"
+  wb_pickup_mark "$(wb_task_stem "$WB_TASK")" wait
   echo "wb: this session restarts in a clean context once the turn ends"
 }
 

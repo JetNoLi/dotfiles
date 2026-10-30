@@ -45,14 +45,6 @@ _ac_give_up() {
 # _ac_field <file> <key>
 _ac_field() { sed -n "s/^$2=//p" "$1" 2>/dev/null | head -n1; }
 
-# _ac_registry_reload — the registry as it is now, not as first loaded.
-_ac_registry_reload() {
-  WB_REG_LOADED=""; WB_PS_LOADED=""; WB_REG_ROWS=()
-  WB_REG_BY_PANE=(); WB_REG_BY_JOB=(); WB_REG_BY_SID=(); WB_REG_BY_PID=()
-  WB_PS_START=(); WB_PS_CMD=(); WB_PS_KIDS=()
-  _wb_registry_load
-}
-
 # _ac_input_pending <pane> — text on Claude's input line, or no input line
 # on screen (a dialog, say), when it can't tell. The input line is the ❯
 # followed by a no-break space; transcript lines use a plain space. An empty
@@ -117,7 +109,7 @@ helper() {
   for i in $(seq 20); do
     working=""
     [ -z "$pane" ] || working="$(tmux show -pv -t "$pane" @claude_working 2>/dev/null)"
-    _ac_registry_reload; idx="${WB_REG_BY_SID[$sid]:-}"
+    _wb_registry_reload; idx="${WB_REG_BY_SID[$sid]:-}"
     status=""; [ -z "$idx" ] || status="$(wb_registry_field "$idx" 4)"
     [ -z "$working" ] && [ "$status" != busy ] && break
     sleep 0.25
@@ -160,9 +152,9 @@ helper() {
 # _ac_record_primary <file> <pane> <old_sid> — once the new Claude registers
 # in the pane, make it the record's @primary, as a respawn by hand would.
 _ac_record_primary() {
-  local i idx new prev
+  local i idx new
   for i in $(seq 40); do
-    _ac_registry_reload
+    _wb_registry_reload
     idx="${WB_REG_BY_PANE[$2]:-}"
     if [ -n "$idx" ]; then
       new="$(wb_registry_field "$idx" 1)"
@@ -172,8 +164,7 @@ _ac_record_primary() {
   done
   [ -n "$new" ] || return 0
   wb_lock_acquire "$1" || return 0
-  prev="$(wb_task_get "$1" claude_sessions | tr ',' '\n' | sed 's/@primary$//' | grep . | paste -sd, -)"
-  wb_task_set "$1" claude_sessions "$new@$(TZ=UTC date +%Y-%m-%dT%H:%M:%SZ)@primary${prev:+,$prev}"
+  wb_task_set_primary "$1" "$new"
   wb_lock_release "$1"
 }
 

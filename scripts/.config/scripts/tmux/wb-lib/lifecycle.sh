@@ -182,15 +182,14 @@ wb_claude_pane_cmd() {
 # id as @primary. A prompt starts it working at once (KTD12). `claude --bg`
 # prints a short id; attach and stop take that, the record keeps the full UUID.
 _wb_start_bg() {
-  local session="$1" wt="$2" file="$3" out job sid prev
+  local session="$1" wt="$2" file="$3" out job sid
   wb_claude_args "${5:-}" "${4:-}"
   out="$(cd "$wt" && claude --bg -n "$session" "${WB_CLAUDE_ARGS[@]}" 2>&1)" || { printf '%s\n' "$out" >&2; return 1; }
   job="$(sed -n 's/^backgrounded · \([^ ]*\) ·.*/\1/p' <<< "$out" | head -n1)"
   [ -n "$job" ] || { echo "wb new: couldn't read the session id from claude --bg:" >&2; printf '%s\n' "$out" >&2; return 1; }
   sid="$(_wb_registry_sid_for_job "$job")" || sid="$job"
   wb_lock_acquire "$file" || return 75
-  prev="$(wb_task_get "$file" claude_sessions | tr ',' '\n' | sed 's/@primary$//' | grep . | paste -sd, -)" || true
-  wb_task_set "$file" claude_sessions "$sid@$(TZ=UTC date +%Y-%m-%dT%H:%M:%SZ)@primary${prev:+,$prev}"
+  wb_task_set_primary "$file" "$sid"
   wb_lock_release "$file"
   echo "wb new: $session's agent is running in the background ($job) — Enter on its row in the picker attaches"
 }
@@ -248,8 +247,7 @@ cmd_new() {
     wb_lock_acquire "$WB_TASK" || return 75
     wb_task_append_entry "$WB_TASK" checkpoint "$seed"
     wb_lock_release "$WB_TASK"
-    mkdir -p "$(dirname "$(wb_pickup_marker x)")"
-    echo start > "$(wb_pickup_marker "$(wb_task_stem "$WB_TASK")")"
+    wb_pickup_mark "$(wb_task_stem "$WB_TASK")" start
     _wb_start_bg "$WB_SESSION" "$repo_dir/$(wb_task_get "$WB_TASK" worktree)" "$WB_TASK" \
       "Pick up this task from its /handoff checkpoint."
   elif [ "$bg" = 1 ]; then
