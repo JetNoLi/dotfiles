@@ -51,6 +51,12 @@ wb_epoch_to_date() {
   date -r "$1" "$fmt" 2>/dev/null || date -d "@$1" "$fmt"
 }
 
+# wb_date_to_epoch <"YYYY-MM-DD HH:MM"> — local time as epoch seconds:
+# `date -j -f` (BSD), then `date -d` (GNU).
+wb_date_to_epoch() {
+  date -j -f '%Y-%m-%d %H:%M' "$1" +%s 2>/dev/null || date -d "$1" +%s
+}
+
 # wb_mtime <file> — modification time as epoch seconds. Output is captured
 # first because GNU stat treats `-f %m` as two files and prints one of them.
 wb_mtime() {

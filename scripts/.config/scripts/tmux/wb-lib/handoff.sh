@@ -121,3 +121,7 @@ cmd_pickup() {
   _wb_entry_task pickup "$@" || return 1
   wb_task_pickup "$WB_TASK"
 }
+
+# wb_pickup_marker <stem> — the file that tells the next startup of the
+# task's Claude to pick up its checkpoint. It holds "wait" or "start".
+wb_pickup_marker() { printf '%s/pickup/%s\n' "$WB_STATE_DIR" "$1"; }

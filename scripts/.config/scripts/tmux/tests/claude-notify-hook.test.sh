@@ -40,6 +40,8 @@ for ev in UserPromptSubmit Notification Stop; do
   assert_eq "$ev gets the notify hook once after two merges" 1 \
     "$(jq --arg ev "$ev" '[.hooks[$ev][].hooks[].command | select(test("claude-notify-hook"))] | length' "$s")"
 done
+assert_eq "SessionStart gets the pick-up hook once after two merges" 1 \
+  "$(jq '[.hooks.SessionStart[].hooks[].command | select(test("claude-pickup-hook"))] | length' "$s")"
 assert_eq "Stop runs the hook with done" "~/.config/scripts/tmux/claude-notify-hook.sh done" \
   "$(jq -r '.hooks.Stop[1].hooks[0].command' "$s")"
 
