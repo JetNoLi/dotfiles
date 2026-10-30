@@ -98,9 +98,9 @@ assert "a pane marked working stops the restart" 'no restart: a new turn started
 screen "$EMPTY"; wb clear-request --task proj--ac >/dev/null; stop default '[{"id":"b1"}]'
 assert "background tasks in the session stop the restart" 'no restart: background tasks are still running' "$(tail -n1 "$LOG")"
 
-mkdir -p "$WB_STATE_DIR/needs-you"; touch "$WB_STATE_DIR/needs-you/proj--ac"
+mkdir -p "$WB_STATE_DIR/needs-you"; echo "buffer /tmp/answers.md" > "$WB_STATE_DIR/needs-you/proj--ac"
 wb clear-request --task proj--ac >/dev/null; stop
-assert "an open /decide surface stops the restart" 'no restart: a /decide surface is still waiting' "$(tail -n1 "$LOG")"
+assert "an open /decide buffer stops the restart" 'no restart: a /decide buffer is open' "$(tail -n1 "$LOG")"
 rm -f "$WB_STATE_DIR/needs-you/proj--ac"
 assert_eq "no give-up path restarted anything" "" "$(cat "$T/claude.log")"
 

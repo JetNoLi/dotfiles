@@ -89,3 +89,13 @@ U3's test run used real Claude in a throwaway task on a private tmux server (`tm
 - **Manual `/clear` (KTD5's `source=clear`)** also works: the first reply after it stated the checkpoint and asked to go ahead.
 - **How to read the input line.** Claude's live input line is `❯` followed by a no-break space (U+00A0). Transcript lines use `❯` and a plain space, so a plain `❯ ` match finds Jet's earlier prompts instead. Empty, it shows nothing or a dim (`ESC[2m`) placeholder or next-prompt suggestion such as "write hello.txt". Typed text isn't dim. With no input line on screen (a dialog, say), the helper doesn't restart. The first probe run caught the plain-space mistake: a suggestion read as typed text, and the helper gave up.
 - **Claude Code sets `CLAUDE_PID` and `CLAUDE_CODE_SESSION_ID`** for the commands it runs. `wb task-for-session` uses `CLAUDE_PID` to find its own registry entry.
+
+## Probe findings: `/decide` buffer (2026-10-30, Claude Code 2.1.314)
+
+U4's check, run the same way on a private tmux server.
+
+- **Does a background command's exit wake an idle interactive session?** Yes. `/decide` ran `wb decide-buffer` with `run_in_background`, ended its turn, and sat idle ("1 shell still running"). When the nvim split closed, the session started a turn by itself, read the answers and recorded them. The plan's assumption holds, so the buffer needs no "done".
+- **Surface choice (AE7):** three yes/no questions went to the buffer without being asked.
+- **Picker:** while the buffer was open, the task's pane read needs-input from the needs-you file. It was idle by the registry.
+- **Recording:** one `wb decision` per item. The blank item was recorded as "default taken", Jet's note was kept verbatim, and `wb decide-clear` removed the needs-you file.
+- **tmux 3.5a quirk:** `display -p -t <pane>` for a pane that's gone prints nothing and exits 0, so code that waits on a pane compares the printed id.

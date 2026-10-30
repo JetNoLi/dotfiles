@@ -39,7 +39,7 @@ elif [ "$src" = startup ]; then
   exit 0
 fi
 
-body="$(wb_task_pickup "$file")" || exit 0
+body="$(wb_pickup_text "$file")" || exit 0
 when="$(sed -n '1s/^### \(.*\) — checkpoint$/\1/p' <<< "$body")"
 age=""
 if then_s="$(wb_date_to_epoch "$when" 2>/dev/null)" && [ -n "$then_s" ]; then
@@ -59,7 +59,7 @@ if [ "$mode" = start ]; then
 else
   steps="- In your first reply, say: \"Picked up the checkpoint from $when${age:+ ($age)}. Next: <the Next action>.\" Then ask Jet whether to go ahead.
 - If entries are listed after the checkpoint, name each one and say the recorded plan may be stale because of them.
-- If the checkpoint lists open decisions, say how many and where they wait. Collect their answers once Jet says go.
+- If the checkpoint lists open decisions, or open /decide surfaces are listed, say how many and where they wait. Once Jet says go, collect the answers as the /decide skill describes.
 - Then wait. Don't start the Next step until Jet confirms or redirects."
 fi
 

@@ -191,6 +191,8 @@ _wb_claude_panes_all() {
       needs-input) if [ -n "$idx" ] && [ "$REPLY" = working ]; then status=working; else status=needs-input; fi ;;
       *)           status=needs-input ;;
     esac
+    # An open /decide surface needs Jet until it's answered (KTD7).
+    [ "$status" = working ] || [ ! -e "$WB_STATE_DIR/needs-you/$sess" ] || status=needs-input
     case "$status" in needs-input) rank=0 ;; done) rank=1 ;; working) rank=2 ;; *) rank=3 ;; esac
     task="${title#* }"; [ "$task" != "$title" ] && [ -n "$task" ] || task="Claude Code"
     printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$rank" "$target" "$status" "$task" "$pane" "$sid"
@@ -213,6 +215,7 @@ wb_bg_sessions() {
     wb_tsv_split "${WB_REG_ROWS[$i]}" rec
     [ "${rec[2]}" = bg ] && [ -z "${rec[3]}" ] || continue
     _wb_map_status "${rec[4]}"
+    [ "$REPLY" = working ] || [ -z "${rec[6]}" ] || [ ! -e "$WB_STATE_DIR/needs-you/${rec[6]}" ] || REPLY=needs-input
     printf '%s\t%s\t%s\t%s\t%s\t%s\n' "${rec[1]}" "${rec[7]}" "${rec[6]}" "${rec[5]}" \
       "$REPLY" "${attached[${rec[1]}]:-}"
   done

@@ -16,7 +16,11 @@
 #   wb pickup              the latest checkpoint and every entry since it
 #   wb task-for-session    this session's task file
 #   wb clear-request       restart this session clean once its turn ends (/handoff)
-#                          (the last six take --task <task> or --session-id <id>)
+#   wb decide-path         a fresh answer-file path for a /decide buffer
+#   wb decide-buffer <file>  edit it in an nvim split; returns when the split closes
+#   wb decide-open <buffer|page> <file|url>  mark a /decide surface as waiting on Jet
+#   wb decide-clear <file|url>|--all          it's answered and recorded
+#                          (from checkpoint on, each takes --task <task> or --session-id <id>)
 #   wb help                this text
 
 # Checked before anything bash 5 only is parsed: namerefs, `local -A`,
@@ -57,6 +61,10 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
     task-for-session) shift; cmd_task_for_session "$@" ;;
     clear-request) shift; cmd_clear_request "$@" ;;
     _clear-cancel) shift; cmd_clear_cancel "$@" ;;
+    decide-path) shift; cmd_decide_path "$@" ;;
+    decide-buffer) shift; cmd_decide_buffer "$@" ;;
+    decide-open) shift; cmd_decide_open "$@" ;;
+    decide-clear) shift; cmd_decide_clear "$@" ;;
     render)      shift; render_rows "$@" ;;
     # fzf binds
     _new)        shift; _new "$@" ;;

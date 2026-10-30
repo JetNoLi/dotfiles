@@ -84,4 +84,21 @@ assert "an interactive session with no tmux pane is not a background session (AE
 assert_eq "wb down's primary id comes from the registry entry for the pane" \
   "sid-$pid2" "$(registry "$pid2" idle "$pane2"; wb_registry_pane_session_id "$pane2")"
 
+# --- open /decide surfaces (KTD7) ------------------------------------------------------
+read -r dpane dpid < <(fake_claude_pane proj--dec)
+registry "$dpid" idle "$dpane"
+mkdir -p "$WB_STATE_DIR/needs-you"; echo "buffer /tmp/a.md" > "$WB_STATE_DIR/needs-you/proj--dec"
+assert_eq "an idle agent whose task has an open /decide surface needs you" needs-input "$(status_of "$dpane")"
+registry "$dpid" busy "$dpane"
+assert_eq "but registry busy still reads as working" working "$(status_of "$dpane")"
+registry "$dpid" idle "$dpane"
+TMUX_PANE="$dpane" "$(dirname "$WB")/claude-notify-hook.sh" done
+assert_eq "the Stop hook's done leaves the needs-you file" yes "$([ -e "$WB_STATE_DIR/needs-you/proj--dec" ] && echo yes || echo no)"
+fake_bg 434343 idle sid-dec jobdec /code/proj
+jq '.name = "proj--dec"' "$CLAUDE_SESSIONS_DIR/434343.json" > "$T/r.json" && mv "$T/r.json" "$CLAUDE_SESSIONS_DIR/434343.json"
+assert_eq "a background row for that task needs you too" needs-input \
+  "$(wb_bg_sessions | awk -F'\t' '$1 == "sid-dec" { print $5 }')"
+rm -f "$WB_STATE_DIR/needs-you/proj--dec"
+assert_eq "without the file the agent is idle again" idle "$(status_of "$dpane")"
+
 finish

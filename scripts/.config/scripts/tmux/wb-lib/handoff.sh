@@ -115,11 +115,20 @@ cmd_decision() {
   wb_lock_release "$WB_TASK"
 }
 
-# cmd_pickup [--task …] [--session-id …] — the latest checkpoint and the
-# entries since it. Fails silently when there is no checkpoint.
+# wb_pickup_text <file> — the latest checkpoint, the entries since it, and
+# the task's open /decide surfaces. Fails, printing nothing, without a
+# checkpoint.
+wb_pickup_text() {
+  local surfaces
+  wb_task_pickup "$1" || return 1
+  surfaces="$(wb_decide_surfaces "$(wb_task_stem "$1")")"
+  [ -z "$surfaces" ] || printf '\n== Open /decide surfaces waiting on Jet ==\n%s\n' "$surfaces"
+}
+
+# cmd_pickup [--task …] [--session-id …] — wb_pickup_text for the task.
 cmd_pickup() {
   _wb_entry_task pickup "$@" || return 1
-  wb_task_pickup "$WB_TASK"
+  wb_pickup_text "$WB_TASK"
 }
 
 # wb_pickup_marker <stem> — the file that tells the next startup of the

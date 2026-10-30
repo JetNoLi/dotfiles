@@ -87,8 +87,8 @@ stop_hook() {
     reason="the request was over $WB_CLEAR_MAX_AGE seconds old"
   elif [ "${bg_tasks:-0}" -gt 0 ] 2>/dev/null; then
     reason="background tasks are still running in this session"
-  elif [ -e "$WB_STATE_DIR/needs-you/$stem" ]; then
-    reason="a /decide surface is still waiting on answers"
+  elif wb_decide_surfaces "$stem" | grep -q '^buffer '; then
+    reason="a /decide buffer is open, and a restart would lose its answers"
   fi
   [ -z "$reason" ] || _ac_give_up "$stem" "$claimed" "$WB_LOOKUP_PANE" "$reason"
 
