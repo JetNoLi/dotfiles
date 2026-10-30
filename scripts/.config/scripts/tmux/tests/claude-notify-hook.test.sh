@@ -42,6 +42,8 @@ for ev in UserPromptSubmit Notification Stop; do
 done
 assert_eq "SessionStart gets the pick-up hook once after two merges" 1 \
   "$(jq '[.hooks.SessionStart[].hooks[].command | select(test("claude-pickup-hook"))] | length' "$s")"
+assert_eq "Stop gets the auto-clear hook once after two merges" 1 \
+  "$(jq '[.hooks.Stop[].hooks[].command | select(. == "~/.config/scripts/tmux/claude-autoclear.sh stop")] | length' "$s")"
 assert_eq "Stop runs the hook with done" "~/.config/scripts/tmux/claude-notify-hook.sh done" \
   "$(jq -r '.hooks.Stop[1].hooks[0].command' "$s")"
 

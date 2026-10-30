@@ -27,9 +27,16 @@ case "${1:-}" in
     tmux set -p -t "$P" @claude_working 1 2>/dev/null || true
     # Hooks receive JSON on stdin with a session_id. Guarded so a manual,
     # stdin-less invocation can't hang on the read.
+    sid=""
     if [ ! -t 0 ]; then
       sid="$(jq -r '.session_id // empty' 2>/dev/null || true)"
       [ -n "$sid" ] && { tmux set -p -t "$P" @claude_session_id "$sid" 2>/dev/null || true; }
+    fi
+    # A pending /handoff clear is cancelled by any new prompt (KTD3). Only
+    # looked up when one exists, so most turns cost a directory listing.
+    state="${WB_STATE_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/wb}"
+    if [ -n "$(ls -A "$state/clear" 2>/dev/null | grep -v '\.claimed$')" ]; then
+      "$(dirname "$0")/wb" _clear-cancel ${sid:+--session-id "$sid"} >/dev/null 2>&1 || true
     fi
     ;;
   needs-input)  # blocked on you (permission / question / idle prompt)

@@ -15,7 +15,8 @@
 #   wb decision <title>    stdin → that Decisions entry in this session's task
 #   wb pickup              the latest checkpoint and every entry since it
 #   wb task-for-session    this session's task file
-#                          (the last five take --task <task> or --session-id <id>)
+#   wb clear-request       restart this session clean once its turn ends (/handoff)
+#                          (the last six take --task <task> or --session-id <id>)
 #   wb help                this text
 
 # Checked before anything bash 5 only is parsed: namerefs, `local -A`,
@@ -54,6 +55,8 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
     decision)    shift; cmd_decision "$@" ;;
     pickup)      shift; cmd_pickup "$@" ;;
     task-for-session) shift; cmd_task_for_session "$@" ;;
+    clear-request) shift; cmd_clear_request "$@" ;;
+    _clear-cancel) shift; cmd_clear_cancel "$@" ;;
     render)      shift; render_rows "$@" ;;
     # fzf binds
     _new)        shift; _new "$@" ;;

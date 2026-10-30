@@ -11,6 +11,9 @@ export CLAUDE_PROJECTS_DIR="$T/projects"
 export CLAUDE_SESSIONS_DIR="$T/sessions"
 export WB_STATE_DIR="$T/state"
 export WB_REPO_ROOTS="$T/code"
+# A test run from inside Claude Code inherits its session; the resolver
+# would otherwise find that session instead of the test's.
+unset CLAUDE_PID CLAUDE_CODE_SESSION_ID TMUX TMUX_PANE
 
 # Every `tmux` call in a test, including the module's own, goes to a private
 # socket with no config loaded. attach and switch-client need a terminal, so
@@ -131,6 +134,12 @@ case "\$1" in
         [ -z "\${WB_TEST_STOP_WRITES:-}" ] || echo late > "\$WB_TEST_STOP_WRITES"
         [ -z "\${WB_TEST_STOP_FAILS:-}" ] || { echo "stop failed" >&2; exit 1; }
         rm -f "$CLAUDE_SESSIONS_DIR/515151.json"; echo "stopped \$2" ;;
+  *) # an interactive start in a pane: registers there, then exits
+    [ -z "\${TMUX_PANE:-}" ] || {
+      echo "525252     1 Sun Oct  5 17:48:10 2026 claude" >> "$T/ps-extra"
+      jq -n --arg pane "\$TMUX_PANE" --arg cwd "\$PWD" '{pid: 525252, sessionId: "new-sid", kind: "interactive",
+        status: "idle", procStart: "Sun Oct  5 17:48:10 2026", cwd: \$cwd, tmux: "s:@1.\(\$pane)"}' \
+        > "$CLAUDE_SESSIONS_DIR/525252.json"; } ;;
 esac
 FAKE
   chmod +x "$T/bin/claude"

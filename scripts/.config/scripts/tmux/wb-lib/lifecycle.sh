@@ -159,13 +159,32 @@ _wb_registry_sid_for_job() {
   return 1
 }
 
-# _wb_start_bg <session> <worktree> <task_file> — start the agent as a
-# background session (KTD6) and record its full session id as @primary.
-# `claude --bg` prints a short id; attach and stop take that, the record
-# keeps the full UUID.
+# wb_claude_args <permission_mode> [prompt] — set WB_CLAUDE_ARGS to the
+# flags and first prompt a relaunched Claude gets: the permission mode it
+# ran in (default needs no flag), then the prompt.
+wb_claude_args() {
+  WB_CLAUDE_ARGS=()
+  case "${1:-}" in ''|default) ;; *) WB_CLAUDE_ARGS+=(--permission-mode "$1") ;; esac
+  [ -z "${2:-}" ] || WB_CLAUDE_ARGS+=("$2")
+}
+
+# wb_claude_pane_cmd <claude_bin> <permission_mode> <prompt> — the command a
+# respawned agent pane runs (KTD2): Claude with its first prompt, then a
+# shell once Claude exits, so the pane never closes under Jet.
+wb_claude_pane_cmd() {
+  wb_claude_args "$2" "$3"
+  printf '%q ' "$1" "${WB_CLAUDE_ARGS[@]}"
+  printf '; exec "${SHELL:-/bin/sh}"\n'
+}
+
+# _wb_start_bg <session> <worktree> <task_file> [prompt] [permission_mode] —
+# start the agent as a background session (KTD6) and record its full session
+# id as @primary. A prompt starts it working at once (KTD12). `claude --bg`
+# prints a short id; attach and stop take that, the record keeps the full UUID.
 _wb_start_bg() {
   local session="$1" wt="$2" file="$3" out job sid prev
-  out="$(cd "$wt" && claude --bg -n "$session" 2>&1)" || { printf '%s\n' "$out" >&2; return 1; }
+  wb_claude_args "${5:-}" "${4:-}"
+  out="$(cd "$wt" && claude --bg -n "$session" "${WB_CLAUDE_ARGS[@]}" 2>&1)" || { printf '%s\n' "$out" >&2; return 1; }
   job="$(sed -n 's/^backgrounded · \([^ ]*\) ·.*/\1/p' <<< "$out" | head -n1)"
   [ -n "$job" ] || { echo "wb new: couldn't read the session id from claude --bg:" >&2; printf '%s\n' "$out" >&2; return 1; }
   sid="$(_wb_registry_sid_for_job "$job")" || sid="$job"

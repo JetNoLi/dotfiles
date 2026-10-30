@@ -12,7 +12,7 @@ CLAUDE_SESSIONS_DIR="${CLAUDE_SESSIONS_DIR:-$HOME/.claude/sessions}"
 
 # --- process table -------------------------------------------------------------
 
-declare -gA WB_PS_START=() WB_PS_CMD=() WB_PS_KIDS=() WB_PS_PARENT=()
+declare -gA WB_PS_START=() WB_PS_CMD=() WB_PS_KIDS=()
 WB_PS_LOADED=""
 
 _wb_ps_load() {
@@ -23,7 +23,6 @@ _wb_ps_load() {
     WB_PS_START[$pid]="$d1 $d2 $d3 $d4 $d5"
     WB_PS_CMD[$pid]="$cmd"
     WB_PS_KIDS[$ppid]+=" $pid"
-    WB_PS_PARENT[$pid]="$ppid"
   done < <(TZ=UTC LC_ALL=C ps -Ao pid=,ppid=,lstart=,command= 2>/dev/null)
 }
 

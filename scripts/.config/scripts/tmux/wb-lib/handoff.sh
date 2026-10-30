@@ -3,39 +3,38 @@
 # one process: the lock is keyed on $BASHPID, so a skill's separate shell
 # calls could never hold it across a write.
 
-# wb_task_for_session [session_id] — the task file a Claude session works on.
-# The session is found in the registry by id, else as an ancestor of this
-# process (a skill's shell runs under its Claude). A registry entry with a
-# pane goes through the pane's tmux session; one without (a background
+# _wb_session_lookup [session_id] — find the Claude session and its task.
+# The session is looked up in the registry by the given id, else by
+# $CLAUDE_PID, which Claude Code sets for the commands it runs. An entry with
+# a pane goes through that pane's tmux session; one without (a background
 # session) maps its name, which wb new sets to the task stem. With no
-# registry entry, $TMUX_PANE is tried. Fails when nothing maps to a task.
-wb_task_for_session() {
-  local sid="${1:-}" idx="" pid pane="" file
+# registry entry, $TMUX_PANE is tried. Sets WB_LOOKUP_FILE, WB_LOOKUP_SID
+# and WB_LOOKUP_PANE; fails when nothing maps to a task.
+_wb_session_lookup() {
+  local sid="${1:-}" idx="" file
+  WB_LOOKUP_FILE=""; WB_LOOKUP_SID="$sid"; WB_LOOKUP_PANE=""
   _wb_registry_load
-  if [ -n "$sid" ]; then
-    idx="${WB_REG_BY_SID[$sid]:-}"
-  else
-    pid="$PPID"
-    while [ -n "$pid" ] && [ "$pid" -gt 1 ] 2>/dev/null; do
-      idx="${WB_REG_BY_PID[$pid]:-}"
-      [ -z "$idx" ] || break
-      pid="${WB_PS_PARENT[$pid]:-}"
-    done
+  if [ -n "$sid" ]; then idx="${WB_REG_BY_SID[$sid]:-}"
+  elif [ -n "${CLAUDE_PID:-}" ]; then idx="${WB_REG_BY_PID[$CLAUDE_PID]:-}"
   fi
   if [ -n "$idx" ]; then
-    pane="$(wb_registry_field "$idx" 3)"
-    if [ -z "$pane" ]; then
+    WB_LOOKUP_SID="$(wb_registry_field "$idx" 1)"
+    WB_LOOKUP_PANE="$(wb_registry_field "$idx" 3)"
+    if [ -z "$WB_LOOKUP_PANE" ]; then
       file="$(wb_task_file_for_stem "$(wb_registry_field "$idx" 6)")"
       wb_task_exists "$file" || return 1
-      echo "$file"; return 0
+      WB_LOOKUP_FILE="$file"; return 0
     fi
   fi
-  pane="${pane:-${TMUX_PANE:-}}"
-  [ -n "$pane" ] || return 1
-  file="$(wb_session_task_file "$(tmux display -p -t "$pane" '#S' 2>/dev/null)")" || return 1
+  WB_LOOKUP_PANE="${WB_LOOKUP_PANE:-${TMUX_PANE:-}}"
+  [ -n "$WB_LOOKUP_PANE" ] || return 1
+  file="$(wb_session_task_file "$(tmux display -p -t "$WB_LOOKUP_PANE" '#S' 2>/dev/null)")" || return 1
   wb_task_exists "$file" || return 1
-  echo "$file"
+  WB_LOOKUP_FILE="$file"
 }
+
+# wb_task_for_session [session_id] — print the session's task file.
+wb_task_for_session() { _wb_session_lookup "${1:-}" && echo "$WB_LOOKUP_FILE"; }
 
 # _wb_entry_task <verb> [--task <stem|file>] [--session-id <id>] — set
 # WB_TASK from the flags, else from the calling session. Leftover arguments
@@ -58,8 +57,9 @@ _wb_entry_task() {
     wb_task_exists "$WB_TASK" || WB_TASK="$(wb_task_file_for_stem "$task")"
     wb_task_exists "$WB_TASK" || { echo "wb $verb: no task '$task'" >&2; return 1; }
   else
-    WB_TASK="$(wb_task_for_session "$sid")" \
+    _wb_session_lookup "$sid" \
       || { echo "wb $verb: this session isn't a wb task, so there is no task to write to" >&2; return 1; }
+    WB_TASK="$WB_LOOKUP_FILE"
   fi
 }
 
@@ -125,3 +125,43 @@ cmd_pickup() {
 # wb_pickup_marker <stem> — the file that tells the next startup of the
 # task's Claude to pick up its checkpoint. It holds "wait" or "start".
 wb_pickup_marker() { printf '%s/pickup/%s\n' "$WB_STATE_DIR" "$1"; }
+
+# --- auto-clear (KTD3) ---------------------------------------------------------------
+# /handoff asks for a clean context with `wb clear-request`. The Stop hook
+# (claude-autoclear.sh) claims the request once the turn ends and restarts
+# Claude; a prompt submitted first cancels it.
+
+WB_CLEAR_MAX_AGE="${WB_CLEAR_MAX_AGE:-120}"   # seconds a clear request stays good
+
+# wb_clear_marker <stem>
+wb_clear_marker() { printf '%s/clear/%s\n' "$WB_STATE_DIR" "$1"; }
+
+# wb_handoff_log <stem> <message> — one line in $WB_STATE_DIR/handoff.log.
+wb_handoff_log() {
+  mkdir -p "$WB_STATE_DIR"
+  printf '%s %s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$1" "$2" >> "$WB_STATE_DIR/handoff.log"
+}
+
+# cmd_clear_request [--task …] [--session-id …] — arm the auto-clear for this
+# session's task, and the pick-up marker its restart will consume.
+cmd_clear_request() {
+  local marker
+  _wb_entry_task clear-request "$@" || return 1
+  marker="$(wb_clear_marker "$(wb_task_stem "$WB_TASK")")"
+  mkdir -p "${marker%/*}" "$(dirname "$(wb_pickup_marker x)")"
+  printf 'sid=%s\npane=%s\ncreated=%s\n' "${WB_LOOKUP_SID:-}" "${WB_LOOKUP_PANE:-}" "$(date +%s)" > "$marker.tmp.$$"
+  mv "$marker.tmp.$$" "$marker"
+  echo wait > "$(wb_pickup_marker "$(wb_task_stem "$WB_TASK")")"
+  echo "wb: this session restarts in a clean context once the turn ends"
+}
+
+# cmd_clear_cancel [--session-id …] — drop an unclaimed request; Jet sent a
+# prompt, so the turn that asked for it is over.
+cmd_clear_cancel() {
+  local stem
+  _wb_entry_task clear-cancel "$@" 2>/dev/null || return 0
+  stem="$(wb_task_stem "$WB_TASK")"
+  [ -f "$(wb_clear_marker "$stem")" ] || return 0
+  rm -f "$(wb_clear_marker "$stem")" "$(wb_pickup_marker "$stem")"
+  wb_handoff_log "$stem" "cancelled: a prompt was sent before the turn ended"
+}

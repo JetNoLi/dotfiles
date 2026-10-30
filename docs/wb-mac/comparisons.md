@@ -75,3 +75,17 @@ These answer the plan's deferred questions.
 - **After `claude stop`:** the registry file is gone, and `claude agents --json --all` lists the session as stopped or done.
 - **`procStart`** is UTC in the C locale. `TZ=UTC LC_ALL=C ps -o lstart=` matches it after trimming trailing spaces.
 - **Other registry statuses** (failed, stopped, completed): none seen. Unknown values map to idle.
+
+## Probe findings: `/handoff` auto-clear (2026-10-30, Claude Code 2.1.314)
+
+U3's test run used real Claude in a throwaway task on a private tmux server (`tmux -L`), so the real server and `~/tasks` were never touched. Every check passed, so KTD2 and KTD4 stand and no fallback was built.
+
+- **Does the helper survive `respawn-pane -k` when launched with `tmux run-shell -b`?** Yes. It went on to record the new session as `@primary` after the respawn.
+- **Does a respawned `claude "<prompt>"` get the SessionStart `additionalContext` and act on it?** Yes. It opened with "Picked up the checkpoint from 18:53 (0 minutes ago). Next: … Want me to go ahead?" and waited. It knew a codeword given before `/handoff` only through the checkpoint, so the context was clean.
+- **Does auto mode let it through?** Yes, both halves. `wb checkpoint` and `wb clear-request` ran as "Allowed by auto mode", and the restart is the hook's, not a tool call. The restarted session came back in auto mode, read from the Stop hook's `permission_mode`.
+- **Does the Stop hook fire before Jet could type?** The pane restarted 1–2 seconds after the turn ended, behind a 1.5-second "clearing…" notice. The helper checks the input line before and after that notice.
+- **Does `claude` resolve in a respawned pane?** The Stop hook passes its absolute path from Claude's own environment, so the pane's PATH doesn't matter.
+- **Can a background job be stopped and started again by name (KTD4)?** Yes. A `--bg` job that ran `/handoff` was stopped (`state: done`), and a new job started under the same name with the pick-up prompt. It stated the checkpoint and waited (`state: blocked`), and became `@primary`. A `--bg` job started from a shell gets that shell's environment, so `TASKS_DIR` and `WB_STATE_DIR` reached its hooks.
+- **Manual `/clear` (KTD5's `source=clear`)** also works: the first reply after it stated the checkpoint and asked to go ahead.
+- **How to read the input line.** Claude's live input line is `❯` followed by a no-break space (U+00A0). Transcript lines use `❯` and a plain space, so a plain `❯ ` match finds Jet's earlier prompts instead. Empty, it shows nothing or a dim (`ESC[2m`) placeholder or next-prompt suggestion such as "write hello.txt". Typed text isn't dim. With no input line on screen (a dialog, say), the helper doesn't restart. The first probe run caught the plain-space mistake: a suggestion read as typed text, and the helper gave up.
+- **Claude Code sets `CLAUDE_PID` and `CLAUDE_CODE_SESSION_ID`** for the commands it runs. `wb task-for-session` uses `CLAUDE_PID` to find its own registry entry.

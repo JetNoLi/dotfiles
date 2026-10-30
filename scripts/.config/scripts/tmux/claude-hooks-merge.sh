@@ -19,6 +19,7 @@ jq --arg dir "$dir" '
   | add("UserPromptSubmit"; $dir + "/claude-notify-hook.sh start")
   | add("Notification"; $dir + "/claude-notify-hook.sh needs-input")
   | add("Stop"; $dir + "/claude-notify-hook.sh done")
+  | add("Stop"; $dir + "/claude-autoclear.sh stop")
   | add("SessionStart"; $dir + "/claude-pickup-hook.sh")
 ' "$settings" > "$settings.tmp.$$"
 mv "$settings.tmp.$$" "$settings"

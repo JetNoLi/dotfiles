@@ -85,6 +85,12 @@ wb_watchdog() {
   ' "$secs" "$@"
 }
 
+# wb_detach <cmd...> — run cmd in its own session, outside the caller's
+# process group, so it outlives whatever started it (setsid via perl).
+wb_detach() {
+  nohup perl -MPOSIX -e 'POSIX::setsid(); exec @ARGV or exit 127' "$@" >/dev/null 2>&1 &
+}
+
 # wb_reverse <file> — the file's lines last first (tac, else BSD tail -r).
 wb_reverse() {
   if command -v tac >/dev/null 2>&1; then tac "$1"; else tail -r "$1"; fi
