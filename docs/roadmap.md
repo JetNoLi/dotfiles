@@ -1,6 +1,6 @@
 # Dotfiles and AI workflow roadmap
 
-Last updated 2026-10-29. This is the living record of where the dotfiles and the AI workflow are heading. Plans and verdicts live in the files it links to; this page says how they fit together.
+Last updated 2026-10-30. This is the living record of where the dotfiles and the AI workflow are heading. Plans and verdicts live in the files it links to; this page says how they fit together.
 
 ## End state
 
@@ -10,6 +10,13 @@ One dotfiles repo serves both the personal Mac and the Ubuntu work machine. Empl
 
 1. **Now: the Mac is a test bed.** The Mac build ports the parts of the work machine's `wb` workbench that matter most, and tries alternatives in specific areas while the work setup keeps running unchanged. Each alternative gets a written keep-or-drop verdict.
 2. **Later: full migration.** Everything in the work dotfiles repo moves into this one, choosing area by area between the Mac version and the work version using those verdicts.
+
+**When the migration is decided:** once `/handoff` and `/decide` are built and the Mac setup has been used day to day for about two weeks, the verdicts are filled in. The migration is then decided area by area. This repo isn't built as the cross-platform version before that point.
+
+Until then, new code stays easy to port:
+- Linux-vs-Mac differences go through the shims in `scripts/.config/scripts/tmux/wb-lib/compat.sh`, never inline.
+- No Mac-only tool where a portable one exists.
+- Anything that can't be portable, such as decision pages sending content to claude.ai, is written down in `docs/wb-mac/comparisons.md`.
 
 Rule: an alternative doesn't count as tested until it has a verdict in `docs/wb-mac/comparisons.md`.
 
@@ -22,7 +29,7 @@ Rule: an alternative doesn't count as tested until it has a verdict in `docs/wb-
 | Messaging and family coordinators | Claude's cross-session messaging replaces send-keys handoffs. One coordinator session per family dispatches two or three workers. | Idea | Builds on background rows from the picker |
 | Realms | The git remote decides which task store a record goes to, and a guard blocks writes across that line. | Idea | Most likely lands with the migration |
 | Go task store | A Go program owns the task store, and bash keeps the tmux and fzf glue. | Planned in the work repo | Replaces the picker plan's store seam |
-| Full migration | Merge the work dotfiles repo into this one. | Later | Uses the comparison verdicts |
+| Full migration | Merge the work dotfiles repo into this one. | Decided after two weeks of using `/handoff` and `/decide` | Uses the comparison verdicts |
 
 Dependencies, in short:
 - Checkpoints need the task store.
@@ -50,4 +57,3 @@ Dependencies, in short:
 - Review follow-ups for the Mac picker, none of them blocking, are listed in `docs/wb-mac/follow-ups.md`.
 - `wb new` puts worktrees in `<repo>/.worktrees/`, which nothing ignores on the Mac yet, so they show as untracked in the main checkout. A global git ignore entry would cover every repo.
 - Which of checkpoints, messaging and realms gets tried on the Mac next.
-- When the full migration starts.
