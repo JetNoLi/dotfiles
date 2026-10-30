@@ -57,6 +57,87 @@ Plan: `docs/plans/2026-10-26-0035-feat-mac-picker-native-status-plan.md`. Built 
 
 **Verdict:** open.
 
+## 6. One `/handoff` instead of `/wb-save`, `/clear` and `/wb-resume`
+
+Plan: `docs/plans/2026-10-30-1353-feat-wb-handoff-and-decide-plan.md`.
+
+**What differs.** The work machine checkpoints with `/wb-save`, then Jet runs `/clear`, then `/wb-resume`. Here `/handoff` writes the checkpoint (Done, In flight, Next, Open decisions) through `wb checkpoint`, and when its turn ends the session restarts clean and opens with "Picked up … Next: … Go ahead?". `/handoff --keep` only writes. The same verb hands work to another live task or starts a new one. The pick-up instructions travel in the SessionStart hook's injected text, so a manual `/clear` still picks up.
+
+**What to watch.**
+- Whether the one-command loop is used as often as the three-step one was (91 resumes and 86 saves on the work machine from July to September).
+- Pick-ups that state a stale plan without naming the entry that made it stale.
+- A restarted session losing a model or effort setting. Only the permission mode carries over.
+
+**Verdict:** open.
+
+## 7. Restarting the session instead of typing `/clear`
+
+**What differs.** No hook, skill or setting can run `/clear`, and auto mode blocks an agent typing into its own pane. So a Stop hook (`claude-autoclear.sh`) restarts the work instead: a pane is respawned with `claude "<pick-up prompt>"`, a background job is stopped and started again under its name. The helper gives up, keeping the checkpoint, when Jet has typed into the input line, a new turn has started, the request is over 2 minutes old, background tasks are running or a `/decide` buffer is open. It logs why to `$WB_STATE_DIR/handoff.log`.
+
+**What to watch.**
+- Restarts that wiped something Jet was about to send. The input-line read relies on Claude's `❯` plus no-break space and dim placeholder, which a UI change could break.
+- Give-ups that shouldn't have happened. The log says which check fired.
+- Whether the 1.5-second "clearing…" notice is worth its delay.
+
+**Verdict:** open.
+
+## 8. Cross-session messaging instead of typing into panes
+
+**What differs.** The work machine's `/handoff` types into the target's tmux pane and leans on a Linux clipboard tool. Here the entry goes into the target's task file (`wb handoff-to`) and a short `SendMessage` points the live session at it. A busy session reads it between steps, and an idle one starts a turn. With no live session the entry waits in the file. `/handoff new` starts a background task seeded with a checkpoint, which begins its Next step without asking.
+
+**What to watch.**
+- Messages held for approval when the two sessions run in different permission modes. None were held in the test run.
+- Pane sessions found by tmux session in `ListAgents`, since they don't carry the stem as their name.
+- Background tasks from `/handoff new` that start on the wrong step because the seeded Next was vague.
+
+**Verdict:** open.
+
+## 9. One `/decide` instead of `/decision-buffer`, `/decision-page` and `/review-page`
+
+**What differs.** One skill agrees the direction in chat, then picks the surface from the questions' shape: an nvim buffer for a few quick answers or a run-and-paste loop, a page for options, evidence or many items, or both. Two buffer shapes replace six. Every answer goes into the task's Decisions section through `wb decision`, which replaces an entry with the same title. While a surface is open, the picker shows the task as needing Jet (`$WB_STATE_DIR/needs-you/<stem>`). The buffer runs as a background command, so its closing wakes the session.
+
+**What to watch.**
+- Wrong surface choices, the problem the work skills' routing tables kept hitting.
+- Whether two buffer shapes are enough, or a findings or interview shape is missed.
+- Items asked without options, pros and cons and a recommendation. Jet asked for all three on every item.
+
+**Verdict:** open.
+
+## 10. A claude.ai page instead of a local page
+
+**What differs.** The work machine's pages are local HTML, answered by pasting a block back or through a local server. Here a private claude.ai artifact renders a published `spec.json` in two layouts and saves each answer to its own `db` as Jet clicks, so a page can be finished on a phone. Submit writes `meta/submitted` and sends a comment to Claude, which wakes the session that published it. After a `/handoff` restart that wake isn't armed, and Jet types "done". Page content goes to claude.ai, so pages are only for the Mac's personal repos (R21).
+
+**What to watch.**
+- The wake took about a minute in the test. Whether that's fast enough, or whether "done" gets typed anyway.
+- The watch's auto-reply posting misleading "recorded" notes in the thread.
+- Pages left open after a restart that nobody collects. The pick-up lists them.
+
+**Verdict:** open.
+
+## Work-skill behaviours and where they went (R23)
+
+Every behaviour of the six work skills is either covered by the plan's R1–R22 or left out on purpose:
+
+| Work behaviour | Here |
+|---|---|
+| `/wb-save` finds the task from `@task`, never the folder | R1, through `wb task-for-session` |
+| Done / In flight / Next, plus a `run` block for the next command | R1; the `run` block is kept in `/handoff` |
+| `/wb-save` reviews shelved decision drafts first | Left out: `/wb-decide` drafting is out of scope |
+| `[wb-propagate]` messages noted as Received | Left out with `/wb-decide` |
+| `/wb-resume` reads the newest rich entry and checks for gaps after it | R3, R4 |
+| `/wb-resume` with no rich entry falls back to the auto entries | Left out: with no checkpoint, nothing is injected and the session starts plain |
+| `/handoff` infers repo and slug, writes a first action and rich context | R10, through `wb new --bg --handoff` |
+| `/handoff` types into the target pane | Replaced by messaging (R7–R9) |
+| Align first, in chat | R12 |
+| Six buffer shapes; every question says why | Two shapes; options, pros and cons, and a recommendation per item |
+| Runtime check before opening a buffer | `wb decide-buffer` refuses outside a task or a tmux session |
+| Rewrite the buffer fresh on a second round | Left out: unanswered items are asked about in chat |
+| Fold answers in, then move the decision doc | R18: answers go straight into Decisions |
+| Feedback and learnings ledgers | Left out: lasting feedback goes into Claude's memory |
+| Companion HTML beside a buffer | R13's "both" |
+| Decision page publish optional, paste-back close | R15–R17: always a claude.ai page, Submit or "done" |
+| Review page with a local server | R15's shared-verdict layout |
+
 ## Other differences made while building
 
 - **The resume id prefers `@primary`.** Since #116, wb ignores `@primary` and resumes the transcript with the newest activity, because its `@primary` came from a pane option that went stale after `/clear`. Here `@primary` comes from the session registry when `wb down` runs (or from `--bg`), which is current at that moment, so it wins when its transcript exists (KTD11). Watch for a parked task resuming the wrong conversation.

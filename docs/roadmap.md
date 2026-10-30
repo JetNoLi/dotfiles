@@ -25,8 +25,9 @@ Rule: an alternative doesn't count as tested until it has a verdict in `docs/wb-
 | Piece | What it is | Status | Where it lives |
 |---|---|---|---|
 | Mac picker with native status | The `wb` picker and `wb new` on `prefix+a`, carved out of wb. Status comes from Claude Code's session data, background sessions are rows, and there is a local `~/tasks` store. | Built and reviewed on `feat/mac-picker-native-status` (local, not pushed); verdicts open | `docs/plans/2026-10-26-0035-feat-mac-picker-native-status-plan.md`, `docs/wb-mac/comparisons.md`, `docs/wb-mac/follow-ups.md` |
-| Automatic checkpoints | Hooks write draft handoffs into the task record on compact and at the end of a session, and `/wb-save` and `/wb-resume` become optional. | Idea | Depends on the picker's task store and seam |
-| Messaging and family coordinators | Claude's cross-session messaging replaces send-keys handoffs. One coordinator session per family dispatches two or three workers. | Idea | Builds on background rows from the picker |
+| `/handoff` and `/decide` | One `/handoff` checkpoints and restarts the session clean, hands work to a live task by messaging, or starts a seeded background task. One `/decide` asks a batch of questions in an nvim buffer or on a claude.ai page and records the answers. | Built on `feat/mac-picker-native-status` (local, not pushed); verdicts open | `docs/plans/2026-10-30-1353-feat-wb-handoff-and-decide-plan.md`, `docs/wb-mac/comparisons.md` sections 6–10 |
+| Automatic checkpoints | Hooks write draft handoffs into the task record on compact and at the end of a session. | Idea, partly absorbed: `/handoff` already replaces `/wb-save` and `/wb-resume`, and the pick-up hook loads a checkpoint after any `/clear` | Would call the same `wb checkpoint` |
+| Messaging and family coordinators | One coordinator session per family dispatches two or three workers. | Idea; messaging itself is in use for `/handoff <task>` | Builds on background rows from the picker |
 | Realms | The git remote decides which task store a record goes to, and a guard blocks writes across that line. | Idea | Most likely lands with the migration |
 | Go task store | A Go program owns the task store, and bash keeps the tmux and fzf glue. | Planned in the work repo | Replaces the picker plan's store seam |
 | Full migration | Merge the work dotfiles repo into this one. | Decided after two weeks of using `/handoff` and `/decide` | Uses the comparison verdicts |
@@ -56,4 +57,5 @@ Dependencies, in short:
 
 - Review follow-ups for the Mac picker, none of them blocking, are listed in `docs/wb-mac/follow-ups.md`.
 - `wb new` puts worktrees in `<repo>/.worktrees/`, which nothing ignores on the Mac yet, so they show as untracked in the main checkout. A global git ignore entry would cover every repo.
-- Which of checkpoints, messaging and realms gets tried on the Mac next.
+- Which of automatic checkpoints, coordinators and realms gets tried on the Mac next.
+- The two-week use of `/handoff` and `/decide` that the migration decision waits on starts once this branch is in daily use.
