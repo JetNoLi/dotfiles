@@ -195,19 +195,22 @@ _wb_start_bg() {
   echo "wb new: $session's agent is running in the background ($job) — Enter on its row in the picker attaches"
 }
 
-# cmd_new [--bg] [--parent <stem>] [<repo>] <slug> — worktree at
-# <repo>/.worktrees/<slug>, tmux session <repo>--<slug>, and a task record.
-# With only a slug, the repo is the one the shell is in.
+# cmd_new [--bg [--handoff]] [--parent <stem>] [<repo>] <slug> — worktree
+# at <repo>/.worktrees/<slug>, tmux session <repo>--<slug>, and a task
+# record. With only a slug, the repo is the one the shell is in. --handoff
+# (/handoff new, R10) reads a checkpoint from stdin, seeds the task with it
+# and starts the background agent on its Next step without asking.
 cmd_new() {
-  local bg=0 parent="" repo="" slug repo_dir rc
+  local bg=0 handoff=0 seed="" parent="" repo="" slug repo_dir rc stem
   local -a args=()
   while [ $# -gt 0 ]; do
     case "$1" in
       --bg) bg=1; shift ;;
+      --handoff) handoff=1; shift ;;
       --parent)
         case "${2-}" in ''|--*) echo "wb new: --parent requires a value" >&2; return 1 ;; esac
         parent="$2"; shift 2 ;;
-      -h|--help) echo "usage: wb new [--bg] [--parent <repo>--<slug>] [<repo>] <slug>"; return 0 ;;
+      -h|--help) echo "usage: wb new [--bg [--handoff]] [--parent <repo>--<slug>] [<repo>] <slug>"; return 0 ;;
       *) args+=("$1"); shift ;;
     esac
   done
@@ -222,16 +225,34 @@ cmd_new() {
          2) return 1 ;;
          *) echo "wb new: no repo called '$repo' under $WB_REPO_ROOTS" >&2; return 1 ;;
        esac ;;
-    *) echo "usage: wb new [--bg] [--parent <repo>--<slug>] [<repo>] <slug>" >&2; return 1 ;;
+    *) echo "usage: wb new [--bg [--handoff]] [--parent <repo>--<slug>] [<repo>] <slug>" >&2; return 1 ;;
   esac
   [ -n "$slug" ] || { echo "wb new: <slug> must not be empty" >&2; return 1; }
+  if [ "$handoff" = 1 ]; then
+    [ "$bg" = 1 ] || { echo "wb new: --handoff needs --bg" >&2; return 1; }
+    stem="$repo--$(wb_sanitize "$slug")"
+    ! wb_task_exists "$(wb_task_file_for_stem "$stem")" \
+      || { echo "wb new: $stem already exists — hand off to it with /handoff $stem" >&2; return 1; }
+    _wb_read_body "new --handoff" || return 1
+    seed="$WB_BODY"
+  fi
   if [ -n "$parent" ]; then
     wb_task_exists "$(wb_task_file_for_stem "$parent")" || { echo "wb new: --parent '$parent' has no task record" >&2; return 1; }
     [ "$parent" != "$repo--$(wb_sanitize "$slug")" ] || { echo "wb new: --parent cannot be the task itself" >&2; return 1; }
   fi
 
   _wb_open_task "$repo" "$repo_dir" "$slug" "" "$parent" "$bg" || return 1
-  if [ "$bg" = 1 ]; then
+  if [ -n "$seed" ]; then
+    # Seeded before Claude starts, so its startup hook finds the checkpoint
+    # and the "start" marker (KTD12).
+    wb_lock_acquire "$WB_TASK" || return 75
+    wb_task_append_entry "$WB_TASK" checkpoint "$seed"
+    wb_lock_release "$WB_TASK"
+    mkdir -p "$(dirname "$(wb_pickup_marker x)")"
+    echo start > "$(wb_pickup_marker "$(wb_task_stem "$WB_TASK")")"
+    _wb_start_bg "$WB_SESSION" "$repo_dir/$(wb_task_get "$WB_TASK" worktree)" "$WB_TASK" \
+      "Pick up this task from its /handoff checkpoint."
+  elif [ "$bg" = 1 ]; then
     _wb_start_bg "$WB_SESSION" "$repo_dir/$(wb_task_get "$WB_TASK" worktree)" "$WB_TASK"
   else
     tmux_focus "$WB_SESSION"

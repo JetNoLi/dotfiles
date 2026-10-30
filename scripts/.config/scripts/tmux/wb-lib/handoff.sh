@@ -86,8 +86,9 @@ cmd_checkpoint() {
   echo "$WB_TASK"
 }
 
-# cmd_handoff_to <target_stem> [--task …] [--session-id …] — stdin becomes a
-# `from <stem>` entry in the target's Handoffs (R7). The sender is the
+# cmd_handoff_to <target> [--task …] [--session-id …] — stdin becomes a
+# `from <stem>` entry in the target's Handoffs (R7). The target is a stem, or
+# a query matching one task. Prints the target's file. The sender is the
 # calling session's task; outside one the entry says so.
 cmd_handoff_to() {
   local from target
@@ -95,7 +96,7 @@ cmd_handoff_to() {
   from="${WB_TASK:+$(wb_task_stem "$WB_TASK")}"
   [ "${#WB_ARGS[@]}" -eq 1 ] || { echo "usage: wb handoff-to <repo>--<slug> < body" >&2; return 1; }
   target="$(wb_task_file_for_stem "${WB_ARGS[0]}")"
-  wb_task_exists "$target" || { echo "wb handoff-to: no task '${WB_ARGS[0]}'" >&2; return 1; }
+  wb_task_exists "$target" || target="$(_wb_find_task "${WB_ARGS[0]}" "wb handoff-to")" || return 1
   _wb_read_body handoff-to || return 1
   wb_lock_acquire "$target" || return 75
   wb_task_append_entry "$target" "from ${from:-a session outside wb}" "$WB_BODY"

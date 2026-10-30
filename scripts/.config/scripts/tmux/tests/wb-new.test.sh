@@ -56,4 +56,24 @@ assert_eq "it doesn't switch away from where you are" "" "$(cat "$T/focus.log")"
 assert "the session shows as a bg row nested under its task" $'^bg\t86e34592\tc1$' \
   "$(collect_combined_rows | cut -f9,11,12)"
 
+# --- /handoff new: a seeded background task (R10, KTD12) ------------------------------------
+: > "$T/claude.log"; rm -f "$CLAUDE_SESSIONS_DIR"/515151.json
+out="$(printf 'Done: split out\nNext: write the parser\n' | wb new --bg --handoff --parent dotfiles--fix-thing dotfiles seeded 2>&1)"; code=$?
+assert_eq "wb new --bg --handoff succeeds" 0 "$code"
+seeded="$TASKS_DIR/dotfiles--seeded.md"
+assert "the new task is seeded with the checkpoint" '— checkpoint.*Next: write the parser' "$(tr '\n' ' ' < "$seeded")"
+assert_eq "with a start marker for its first startup" start "$(cat "$WB_STATE_DIR/pickup/dotfiles--seeded" 2>/dev/null)"
+assert "the background agent gets the pick-up prompt" '^--bg -n dotfiles--seeded Pick up this task from its /handoff checkpoint\.$' "$(cat "$T/claude.log")"
+assert "and is still recorded as @primary" '@primary' "$(wb_task_get "$seeded" claude_sessions)"
+assert_eq "its parent is the sending task" dotfiles--fix-thing "$(wb_task_get "$seeded" parent)"
+
+: > "$T/claude.log"; rm -f "$CLAUDE_SESSIONS_DIR"/515151.json
+wb new --bg dotfiles plain-bg >/dev/null 2>&1
+assert_eq "wb new --bg without --handoff starts the agent with no prompt" "--bg -n dotfiles--plain-bg" "$(cat "$T/claude.log")"
+assert_eq "and writes no pick-up marker" no "$([ -e "$WB_STATE_DIR/pickup/dotfiles--plain-bg" ] && echo yes || echo no)"
+
+out="$(echo 'Next: x' | wb new --bg --handoff dotfiles seeded 2>&1)"; code=$?
+assert_eq "--handoff onto an existing task refuses" 1 "$code"
+assert "pointing at /handoff <task> instead" 'already exists' "$out"
+
 finish

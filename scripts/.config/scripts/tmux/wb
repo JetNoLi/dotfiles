@@ -4,8 +4,9 @@
 # where it deliberately differs.
 #
 #   wb                     open the picker
-#   wb new [--bg] [--parent <repo>--<slug>] [<repo>] <slug>
-#                          worktree + tmux session + task (--bg: background agent)
+#   wb new [--bg [--handoff]] [--parent <repo>--<slug>] [<repo>] <slug>
+#                          worktree + tmux session + task (--bg: background agent;
+#                          --handoff: seed it from stdin and start it working)
 #   wb down [session|task] park: stop the agent and session, keep the worktree
 #   wb done [--close] [session|task]
 #                          close: stop the agent, remove the worktree (--close: and the session)

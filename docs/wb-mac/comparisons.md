@@ -99,3 +99,14 @@ U4's check, run the same way on a private tmux server.
 - **Picker:** while the buffer was open, the task's pane read needs-input from the needs-you file. It was idle by the registry.
 - **Recording:** one `wb decision` per item. The blank item was recorded as "default taken", Jet's note was kept verbatim, and `wb decide-clear` removed the needs-you file.
 - **tmux 3.5a quirk:** `display -p -t <pane>` for a pane that's gone prints nothing and exits 0, so code that waits on a pane compares the printed id.
+
+## Probe findings: cross-session messaging for `/handoff <task>` (2026-10-30, Claude Code 2.1.314)
+
+U5's test run. This session sent with `SendMessage` to real probe sessions on a private tmux server: panes in default (manual) and auto mode, and a `--bg` job in auto mode.
+
+- **Idle targets:** every one, the default-mode pane included, started a turn with the message and replied. Nothing was held for approval, even though the sender ran in auto mode.
+- **Mid-turn targets:** a pane and a background job, each partway through a multi-step turn, read the message between steps. Each finished its work and then acted on the message. Nothing was interrupted.
+- **Intact:** a body with non-ASCII text (`alpha-βeta-γamma-✓-12345`) reached the receiver's transcript byte for byte.
+- **So R9's fallback (switching Jet to the session with the context on the tmux buffer) was not built.** Messaging worked for both kinds of session.
+- **Names (KTD11).** A pane session started without `-n` gets an automatic name (`ac-b3`, `pb-b7`), not the wb stem. Its `ListAgents` row does show `tmux <session>:@…`, and wb's session name is the stem. `/handoff <task>` matches either a row named for the stem (background jobs, which `wb new --bg` names) or a row whose tmux session is the stem. No launch needs `-n`.
+- **End to end:** `/handoff probe--pb` from one task wrote the `from probe--ac` entry, messaged the unnamed live session, and the receiver did the work. `/handoff new probe-child` made the worktree, session and seeded task (parent set), and its background Claude began the Next step without asking.
