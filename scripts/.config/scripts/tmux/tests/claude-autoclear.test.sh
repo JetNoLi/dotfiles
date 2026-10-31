@@ -87,23 +87,23 @@ mkdir -p "$T/code/proj/.worktrees/bgac"
 fb="$TASKS_DIR/proj--bgac.md"
 printf -- '---\nstatus: doing\nrepo: proj\nrepo_path: %s\nworktree: .worktrees/bgac\nclaude_sessions: bg-sid@2026-10-01T00:00:00Z@primary\n---\n# Bgac\n\n## Handoffs\n\n## Decisions\n' "$T/code/proj" > "$fb"
 echo 'Next: y' | wb checkpoint --task proj--bgac >/dev/null
-fake_bg 616161 idle bg-sid bgjob01 "$T/code/proj/.worktrees/bgac" proj--bgac
+fake_bg 515151 idle bg-sid bgjob01 "$T/code/proj/.worktrees/bgac" proj--bgac
 bgmarker() { [ -e "$WB_STATE_DIR/clear/proj--bgac" ] && echo yes || echo no; }
 wb clear-request --session-id bg-sid >/dev/null
 assert_eq "a background session's clear-request writes its request" yes "$(bgmarker)"
 echo '{"session_id":"bg-sid"}' | "$NOTIFY" start
 assert_eq "a prompt in a background session cancels its request too" no "$(bgmarker)"
 
-screen "$TYPED"; wb clear-request --task proj--ac >/dev/null; stop
-wait_log "text on the input line"
+screen "$TYPED"; : > "$LOG"; wb clear-request --task proj--ac >/dev/null; stop
+wait_log "no restart"
 assert "AE2: text on the input line stops the restart" "no restart: there's text on the input line" "$(tail -n1 "$LOG")"
 assert "AE2: and the checkpoint is kept" '— checkpoint' "$(cat "$f")"
 
-screen "$DIALOG"; wb clear-request --task proj--ac >/dev/null; stop
-wait_log "or none on screen"
-assert "with no input line on screen, it doesn't restart" "no restart: there's text on the input line, or none on screen" "$(tail -n1 "$LOG")"
+screen "$DIALOG"; : > "$LOG"; wb clear-request --task proj--ac >/dev/null; stop
+wait_log "no restart"
+assert "with no input line on screen, it doesn't restart" "no restart: Claude's input line isn't on screen" "$(tail -n1 "$LOG")"
 
-screen "$EMPTY"; wb clear-request --task proj--ac >/dev/null
+screen "$EMPTY"; : > "$LOG"; wb clear-request --task proj--ac >/dev/null
 tmux set -p -t "$P" @claude_working 1
 stop; wait_log 'a new turn started'
 assert "a pane marked working stops the restart" 'no restart: a new turn started' "$(tail -n1 "$LOG")"

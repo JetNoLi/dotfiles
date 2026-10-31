@@ -46,13 +46,16 @@ _ac_give_up() {
 _ac_field() { sed -n "s/^$2=//p" "$1" 2>/dev/null | head -n1; }
 
 # _ac_input_pending <pane> — text on Claude's input line, or no input line
-# on screen (a dialog, say), when it can't tell. The input line is the ❯
-# followed by a no-break space; transcript lines use a plain space. An empty
-# line is blank or shows a dim placeholder or suggestion; typed text isn't dim.
+# on screen (a dialog, say), when it can't tell; AC_PENDING says which. The
+# input line is the ❯ followed by a no-break space; transcript lines use a
+# plain space. An empty line is blank or shows a dim placeholder or
+# suggestion; typed text isn't dim.
 _ac_input_pending() {
   local line rest prompt=$'\xe2\x9d\xaf\xc2\xa0'
   line="$(tmux capture-pane -p -e -t "$1" 2>/dev/null | LC_ALL=C grep -F "$prompt" | tail -n1)"
+  AC_PENDING="Claude's input line isn't on screen (a dialog, say)"
   [ -n "$line" ] || return 0
+  AC_PENDING="there's text on the input line"
   rest="${line#*"$prompt"}"
   rest="$(LC_ALL=C sed -E $'s/\e\\[(0|39|49)?m//g; s/[[:space:]]+$//' <<< "$rest")"
   [ -n "$rest" ] && [[ "$rest" != $'\e[2m'* ]]
@@ -122,10 +125,10 @@ helper() {
   wt="$(wb_task_worktree_abs "$file" 2>/dev/null)"
   if [ -n "$pane" ]; then
     [ -n "$wt" ] && [ -d "$wt" ] || wt="$(tmux display -p -t "$pane" '#{pane_current_path}' 2>/dev/null)"
-    _ac_input_pending "$pane" && _ac_give_up "$stem" "$claimed" "$pane" "there's text on the input line, or none on screen"
+    _ac_input_pending "$pane" && _ac_give_up "$stem" "$claimed" "$pane" "$AC_PENDING"
     tmux display-message -d 1500 -t "$pane" "wb: clearing for the /handoff pick-up…" 2>/dev/null
     sleep 1.5
-    _ac_input_pending "$pane" && _ac_give_up "$stem" "$claimed" "$pane" "there's text on the input line, or none on screen"
+    _ac_input_pending "$pane" && _ac_give_up "$stem" "$claimed" "$pane" "$AC_PENDING"
     [ -z "$(tmux show -pv -t "$pane" @claude_working 2>/dev/null)" ] \
       || _ac_give_up "$stem" "$claimed" "$pane" "a new turn started"
     tmux respawn-pane -k -t "$pane" -c "$wt" "$(wb_claude_pane_cmd "$bin" "$perm" "$WB_CLEAR_PROMPT")" \
