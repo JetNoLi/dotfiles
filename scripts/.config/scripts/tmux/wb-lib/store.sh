@@ -159,9 +159,11 @@ wb_task_worktree_abs() {
   echo "$repo_path/$wt"
 }
 
-# wb_entry_demote — stdin to stdout with `#`, `##` and `###` headings pushed
-# down to `####`, so an entry body can't open a section or a sibling entry.
-wb_entry_demote() { sed -E 's/^#{1,3}( |$)/####\1/'; }
+# wb_entry_demote — stdin to stdout with `##` and `###` headings pushed down
+# to `####`, so an entry body can't open a section or a sibling entry. A `# `
+# line, such as a shell comment in a fenced block, is left as written: only
+# the task's title is read from one, and that comes before any entry.
+wb_entry_demote() { sed -E 's/^#{2,3}( |$)/####\1/'; }
 
 # wb_task_append_handoff <file> <source> <message> — an automatic entry,
 # `### <date> — <source> (auto)`, from wb down, done and resume.

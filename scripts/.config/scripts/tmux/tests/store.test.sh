@@ -58,10 +58,12 @@ echo 'Next: c' | wb checkpoint --task proj--bare >/dev/null
 assert "a task without Handoffs gets the section before Decisions" \
   '## Plan ## Handoffs ### .* — checkpoint Next: c ## Decisions' "$(tr '\n' ' ' < "$TASKS_DIR/proj--bare.md" | tr -s ' ')"
 
-printf 'Intro\n## Sneaky\n### Also\nend\n' | wb checkpoint --task proj--bare >/dev/null
+printf 'Intro\n## Sneaky\n### Also\n```sh\n# a shell comment\n```\nend\n' | wb checkpoint --task proj--bare >/dev/null
 assert_eq "a ## line in a body is demoted" 1 "$(grep -c '^#### Sneaky$' "$TASKS_DIR/proj--bare.md")"
 assert_eq "so it opens no section of its own" 0 "$(grep -c '^## Sneaky$' "$TASKS_DIR/proj--bare.md")"
 assert_eq "and a ### line in a body is demoted too" 1 "$(grep -c '^#### Also$' "$TASKS_DIR/proj--bare.md")"
+assert_eq "a # line, like a shell comment in a fenced block, is kept as written" 1 "$(grep -c '^# a shell comment$' "$TASKS_DIR/proj--bare.md")"
+assert_eq "and the task's title still reads from the first # line" Bare "$(wb_task_title "$TASKS_DIR/proj--bare.md")"
 
 p="$TASKS_DIR/proj--pick.md"
 printf -- '---\nstatus: doing\n---\n# Pick\n\n## Handoffs\n\n### 2026-10-01 09:00 — checkpoint\n\nOld one.\n\n### 2026-10-02 14:02 — checkpoint\n\nNext: X\n\n### 2026-10-02 15:10 — wb down (auto)\n\nParked.\n\n### 2026-10-02 16:00 — from proj--other\n\nHanded over.\n\n## Decisions\n' > "$p"
