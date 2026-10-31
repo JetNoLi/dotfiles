@@ -91,22 +91,25 @@ fake_claude_pane() {
 }
 
 # registry <pid> <status> [pane] [kind] [procStart] [sessionId] [jobId] [cwd]
-# — a session registry file. procStart defaults to the pid's real start.
+# [name] — a session registry file. procStart defaults to the pid's real
+# start, name to n-<pid>.
 registry() {
   local start="${5:-$(TZ=UTC LC_ALL=C /bin/ps -o lstart= -p "$1" 2>/dev/null | sed 's/ *$//')}"
   jq -n --arg pid "$1" --arg st "$2" --arg pane "${3:-}" --arg kind "${4:-interactive}" \
-        --arg start "$start" --arg sid "${6:-sid-$1}" --arg job "${7:-}" --arg cwd "${8:-/code/proj}" '
+        --arg start "$start" --arg sid "${6:-sid-$1}" --arg job "${7:-}" --arg cwd "${8:-/code/proj}" \
+        --arg name "${9:-n-$1}" '
     {pid: ($pid | tonumber), sessionId: $sid, status: $st, kind: $kind,
-     procStart: $start, cwd: $cwd, name: "n-\($pid)"}
+     procStart: $start, cwd: $cwd, name: $name}
     + (if $pane == "" then {} else {tmux: "s:@1.\($pane)"} end)
     + (if $job == "" then {} else {jobId: $job} end)' > "$CLAUDE_SESSIONS_DIR/$1.json"
 }
 
-# fake_bg <pid> <status> <sessionId> <jobId> <cwd> — a background session
-# the registry lists, with a fake process-table line so it reads as live.
+# fake_bg <pid> <status> <sessionId> <jobId> <cwd> [name] — a background
+# session the registry lists, with a fake process-table line so it reads as
+# live. wb new names it after the task stem.
 fake_bg() {
   echo "$1     1 Sun Oct  5 17:48:10 2026 claude" >> "$T/ps-extra"
-  registry "$1" "$2" "" bg "Sun Oct  5 17:48:10 2026" "$3" "$4" "$5"
+  registry "$1" "$2" "" bg "Sun Oct  5 17:48:10 2026" "$3" "$4" "$5" "${6:-}"
 }
 
 # fake_claude_bin [sid] — a `claude` on PATH that logs every call to
