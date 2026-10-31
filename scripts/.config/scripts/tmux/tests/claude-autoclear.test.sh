@@ -187,4 +187,16 @@ assert "the session was started" '^--bg -n proj--bgac' "$(cat "$T/claude.log")"
 assert_eq "and keeps its pick-up marker" wait "$(cat "$WB_STATE_DIR/pickup/proj--bgac" 2>/dev/null)"
 kill "$holder" 2>/dev/null; wait "$holder" 2>/dev/null
 
+# --- on bash 3.2 ---------------------------------------------------------------------------
+# tmux's run-shell can resolve `env bash` to macOS's /bin/bash 3.2, which
+# wb refuses. The helper says so and drops the claimed request.
+if [ -x /bin/bash ] && [ "$(/bin/bash -c 'echo ${BASH_VERSINFO[0]}')" -lt 5 ]; then
+  : > "$LOG"; mkdir -p "$WB_STATE_DIR/clear"
+  printf 'created=%s\n' "$(date +%s)" > "$WB_STATE_DIR/clear/proj--ac.claimed"; wb_pickup_mark proj--ac wait
+  /bin/bash "$AC" helper "$WB_STATE_DIR/clear/proj--ac.claimed" default claude
+  assert "on bash 3.2 the helper logs why it didn't restart" 'proj--ac no restart: auto-clear needs bash 5, found 3' "$(tail -n1 "$LOG")"
+  assert_eq "and drops the claimed request and its pick-up marker" no \
+    "$([ -e "$WB_STATE_DIR/clear/proj--ac.claimed" ] || [ -e "$WB_STATE_DIR/pickup/proj--ac" ] && echo yes || echo no)"
+fi
+
 finish

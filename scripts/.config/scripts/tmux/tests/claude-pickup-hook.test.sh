@@ -63,4 +63,11 @@ tmux new-session -d -s plain "sleep 300"
 out="$(P="$(tmux list-panes -t "=plain:" -F '#{pane_id}')" start clear; echo "exit=$?")"
 assert_eq "AE6: a pane in a session with no @task exits 0 silently" exit=0 "$out"
 
+# --- on bash 3.2 ---------------------------------------------------------------------------
+if [ -x /bin/bash ] && [ "$(/bin/bash -c 'echo ${BASH_VERSINFO[0]}')" -lt 5 ]; then
+  out="$(echo '{"source":"clear","session_id":"x"}' | /bin/bash "$(dirname "$WB")/claude-pickup-hook.sh"; echo "exit=$?")"
+  assert_eq "on bash 3.2 the pick-up hook prints nothing and exits 0" exit=0 "$out"
+  assert "and logs why" 'no pick-up: the SessionStart hook needs bash 5, found 3' "$(tail -n1 "$WB_STATE_DIR/handoff.log")"
+fi
+
 finish

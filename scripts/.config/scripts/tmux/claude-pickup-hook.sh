@@ -24,6 +24,15 @@ src="$(jq -r '.source // empty' <<< "$input" 2>/dev/null)"
 sid="$(jq -r '.session_id // empty' <<< "$input" 2>/dev/null)"
 case "$src" in clear|startup) ;; *) exit 0 ;; esac
 
+# wb needs bash 5; sourced under an older one it exits before anything is
+# logged, so the missed pick-up is logged here.
+if [ "${BASH_VERSINFO[0]:-0}" -lt 5 ]; then
+  st="${WB_STATE_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/wb}"; mkdir -p "$st"
+  printf '%s - no pick-up: the SessionStart hook needs bash 5, found %s\n' \
+    "$(date '+%Y-%m-%d %H:%M:%S')" "${BASH_VERSION:-?}" >> "$st/handoff.log"
+  exit 0
+fi
+
 # shellcheck source=/dev/null
 source "$(dirname "$0")/wb" 2>/dev/null || exit 0
 set +e +u

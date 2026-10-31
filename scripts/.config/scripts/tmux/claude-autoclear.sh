@@ -28,6 +28,20 @@ case "${1:-}" in
   *) exit 0 ;;
 esac
 
+# wb needs bash 5, and sourcing it under an older one (tmux's run-shell can
+# find /bin/bash 3.2 first) would exit before anything is logged. Say so,
+# and drop a claimed request so its checkpoint waits for a /clear.
+if [ "${BASH_VERSINFO[0]:-0}" -lt 5 ]; then
+  mkdir -p "$state"
+  stem=-; [ "$1" != helper ] || stem="$(basename "${2:-x}" .claimed)"
+  printf '%s %s no restart: auto-clear needs bash 5, found %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" \
+    "$stem" "${BASH_VERSION:-?}" >> "$state/handoff.log"
+  [ "$1" != helper ] || rm -f "${2:-}" "$state/pickup/$stem"
+  [ -z "${TMUX_PANE:-}" ] || tmux display-message -d 5000 -t "$TMUX_PANE" \
+    "wb: no auto-clear — it needs bash 5, found ${BASH_VERSION:-?}. /clear picks up the checkpoint." 2>/dev/null
+  exit 0
+fi
+
 AC_SELF="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
 # shellcheck source=/dev/null
 source "$(dirname "$0")/wb" 2>/dev/null || exit 0
