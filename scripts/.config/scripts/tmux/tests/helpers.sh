@@ -118,6 +118,7 @@ fake_bg() {
 # idles with that argv; `stop <id>` removes the registry entry. During a
 # stop, WB_TEST_STOP_WRITES=<file> writes into the worktree the way a
 # mid-turn agent would, and WB_TEST_STOP_FAILS=1 makes the stop fail.
+# WB_TEST_BG_FAILS=1 makes `--bg` fail.
 fake_claude_bin() {
   local sid="${1:-86e34592-cdb9-4da2-bf55-6db85f3bc22e}"
   cat > "$T/bin/claude" <<FAKE
@@ -125,6 +126,7 @@ fake_claude_bin() {
 echo "\$*" >> "$T/claude.log"
 case "\$1" in
   --bg)
+    [ -z "\${WB_TEST_BG_FAILS:-}" ] || { echo "couldn't start" >&2; exit 1; }
     name="\$3"; job="${sid:0:8}"
     echo "515151     1 Sun Oct  5 17:48:10 2026 claude" >> "$T/ps-extra"
     jq -n --arg cwd "\$PWD" --arg name "\$name" '{pid: 515151, sessionId: "$sid", jobId: "${sid:0:8}",

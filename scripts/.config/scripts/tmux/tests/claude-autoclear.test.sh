@@ -117,4 +117,33 @@ assert "an open /decide buffer stops the restart" 'no restart: a /decide buffer 
 rm -f "$WB_STATE_DIR/needs-you/proj--ac"
 assert_eq "no give-up path restarted anything" "" "$(cat "$T/claude.log")"
 
+# --- a background session restarts by stop and start (KTD4) ------------------------------
+# The fake's `stop` drops registry entry 515151 and `--bg` writes a new one,
+# so each case lists the old session again first.
+bgstop() { printf '{"session_id":"bg-sid","permission_mode":"%s","background_tasks":[]}' "${1:-default}" | "$AC" stop; }
+bgsession() { fake_bg 515151 idle bg-sid bgjob01 "$T/code/proj/.worktrees/bgac" proj--bgac; }
+
+: > "$LOG"; : > "$T/claude.log"
+wb clear-request --session-id bg-sid >/dev/null; bgstop auto
+wait_log 'restarted the background session|no restart'
+assert "the background session is restarted" 'restarted the background session proj--bgac' "$(tail -n1 "$LOG")"
+assert "by stopping its job" '^stop bgjob01$' "$(cat "$T/claude.log")"
+assert "and starting it again under its name with the pick-up prompt" \
+  '^--bg -n proj--bgac --permission-mode auto Pick up this task from its /handoff checkpoint\.$' "$(cat "$T/claude.log")"
+assert "the new session becomes @primary" '^86e34592-cdb9-4da2-bf55-6db85f3bc22e@[^@]*@primary,bg-sid@' "$(wb_task_get "$fb" claude_sessions)"
+assert_eq "the request is used up" "" "$(ls "$WB_STATE_DIR/clear" | grep bgac)"
+
+bgsession; : > "$LOG"; : > "$T/claude.log"
+wb clear-request --session-id bg-sid >/dev/null; WB_TEST_STOP_FAILS=1 bgstop
+wait_log 'no restart'
+assert "a job that won't stop isn't started again" "no restart: the background session bgjob01 wouldn't stop" "$(tail -n1 "$LOG")"
+assert_eq "and nothing is started" "" "$(grep -- '--bg' "$T/claude.log")"
+
+bgsession; : > "$LOG"; : > "$T/claude.log"
+wb clear-request --session-id bg-sid >/dev/null; WB_TEST_BG_FAILS=1 bgstop
+wait_log 'no restart'
+assert "a job that stops but won't start says to resume it" \
+  "no restart: the background session stopped but didn't start again; run wb resume" "$(tail -n1 "$LOG")"
+assert_eq "and leaves no pick-up marker" no "$([ -e "$WB_STATE_DIR/pickup/proj--bgac" ] && echo yes || echo no)"
+
 finish
