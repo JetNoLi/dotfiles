@@ -154,6 +154,14 @@ assert "and starting it again under its name with the pick-up prompt" \
 assert "the new session becomes @primary" '^86e34592-cdb9-4da2-bf55-6db85f3bc22e@[^@]*@primary,bg-sid@' "$(wb_task_get "$fb" claude_sessions)"
 assert_eq "the request is used up" "" "$(ls "$WB_STATE_DIR/clear" | grep bgac)"
 
+bgsession; : > "$LOG"
+tmux new-session -d -s attached "claude attach bgjob01"; sleep 0.3; : > "$T/claude.log"
+wb clear-request --session-id bg-sid >/dev/null; bgstop
+wait_log 'no restart'
+assert "an attached client stops the restart" "no restart: you're attached to the background session bgjob01" "$(tail -n1 "$LOG")"
+assert_eq "and the job isn't stopped" "" "$(cat "$T/claude.log")"
+tmux kill-session -t "=attached"
+
 bgsession; : > "$LOG"; : > "$T/claude.log"
 wb clear-request --session-id bg-sid >/dev/null; WB_TEST_STOP_FAILS=1 bgstop
 wait_log 'no restart'

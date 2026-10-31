@@ -99,7 +99,7 @@ stop_hook() {
 }
 
 helper() {
-  local claimed="$1" perm="$2" bin="$3" stem file pane sid created i working idx status wt job name
+  local claimed="$1" perm="$2" bin="$3" stem file pane sid created i working idx status wt job name att
   stem="$(basename "$claimed" .claimed)"
   file="$(wb_task_file_for_stem "$stem")"
   pane="$(_ac_field "$claimed" lookup_pane)"; sid="$(_ac_field "$claimed" lookup_sid)"
@@ -140,6 +140,9 @@ helper() {
     [ -n "$idx" ] || _ac_give_up "$stem" "$claimed" "" "the background session is gone"
     job="$(wb_registry_field "$idx" 7)"; name="$(wb_registry_field "$idx" 6)"
     [ -n "$wt" ] && [ -d "$wt" ] || wt="$(wb_registry_field "$idx" 5)"
+    # Stopping the job would drop what Jet is typing in an attached client.
+    att="$(_wb_bg_attached_pane "$job")" \
+      && _ac_give_up "$stem" "$claimed" "$att" "you're attached to the background session $job"
     wb_watchdog 10 "$bin" stop "$job" >/dev/null 2>&1 </dev/null \
       || _ac_give_up "$stem" "$claimed" "" "the background session $job wouldn't stop"
     if _wb_start_bg "$name" "$wt" "$file" "$WB_CLEAR_PROMPT" "$perm" >/dev/null 2>&1; then

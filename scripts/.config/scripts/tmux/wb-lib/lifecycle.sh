@@ -322,17 +322,25 @@ _wb_stop_bg() {
   return "$failed"
 }
 
+# _wb_bg_attached_pane <job> — the pane (session:window.pane) running
+# `claude attach <job>`; fails when none is.
+_wb_bg_attached_pane() {
+  local ppid target
+  _wb_ps_load
+  while read -r ppid target; do
+    _wb_pane_claude_pid "$ppid" || continue
+    [[ "${WB_PS_CMD[$REPLY]}" == *"claude attach $1"* ]] && { echo "$target"; return 0; }
+  done < <(tmux list-panes -a -F '#{pane_pid} #{session_name}:#{window_index}.#{pane_index}' 2>/dev/null)
+  return 1
+}
+
 # wb_bg_attach <job> <task_file|cwd> — Enter on a bg row (R8). Jumps to a
 # pane already attached to it; otherwise attaches in the task session's
 # agent window (empty after --bg), or in a new window of the current
 # session when the session belongs to no task.
 wb_bg_attach() {
-  local job="$1" ref="$2" ppid target session
-  _wb_ps_load
-  while read -r ppid target; do
-    _wb_pane_claude_pid "$ppid" || continue
-    [[ "${WB_PS_CMD[$REPLY]}" == *"claude attach $job"* ]] && { tmux_goto_pane "$target"; return 0; }
-  done < <(tmux list-panes -a -F '#{pane_pid} #{session_name}:#{window_index}.#{pane_index}' 2>/dev/null)
+  local job="$1" ref="$2" target session
+  target="$(_wb_bg_attached_pane "$job")" && { tmux_goto_pane "$target"; return 0; }
 
   if wb_task_exists "$ref"; then
     session="$(wb_task_stem "$ref")"
