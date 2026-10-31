@@ -53,6 +53,25 @@ assert "pickup lists the open surfaces after the checkpoint" 'Open /decide surfa
 TMUX_PANE="$P" wb decide-clear --all
 assert_eq "decide-clear --all removes the file" no "$([ -e "$NY" ] && echo yes || echo no)"
 
+# --- the task lock -------------------------------------------------------------------------
+sleep 30 & holder=$!
+mkdir -p "$WB_STATE_DIR/locks/proj--dec.md.lock"; echo "$holder" > "$WB_STATE_DIR/locks/proj--dec.md.lock/pid"
+TMUX_PANE="$P" WB_LOCK_WAIT=1 wb decide-open page https://claude.ai/artifact/held >/dev/null 2>&1; code=$?
+assert_eq "a held lock makes decide-open exit 75" 75 "$code"
+assert_eq "writing nothing" no "$([ -e "$NY" ] && echo yes || echo no)"
+out="$(TMUX_PANE="$P" WB_LOCK_WAIT=1 wb decide-buffer "$ans" 2>&1)"; code=$?
+assert_eq "and decide-buffer exit 75" 75 "$code"
+assert_eq "before opening a split" 1 "$(tmux list-panes -t "=proj--dec:" | wc -l | tr -d ' ')"
+kill "$holder" 2>/dev/null; wait "$holder" 2>/dev/null
+TMUX_PANE="$P" wb decide-open page https://claude.ai/artifact/z
+sleep 30 & holder=$!
+mkdir -p "$WB_STATE_DIR/locks/proj--dec.md.lock"; echo "$holder" > "$WB_STATE_DIR/locks/proj--dec.md.lock/pid"
+out="$(TMUX_PANE="$P" WB_LOCK_WAIT=1 wb decide-clear https://claude.ai/artifact/z 2>&1)"; code=$?
+assert_eq "and decide-clear exit 75" 75 "$code"
+assert_eq "leaving the surface open" "page https://claude.ai/artifact/z" "$(cat "$NY")"
+kill "$holder" 2>/dev/null; wait "$holder" 2>/dev/null
+TMUX_PANE="$P" wb decide-clear --all
+
 # --- a split that can't open marks nothing ---------------------------------------------------
 tmux new-session -d -s proj--tiny -x 2 -y 2 "sleep 300"
 ft="$TASKS_DIR/proj--tiny.md"; printf -- '---\nstatus: doing\n---\n# Tiny\n\n## Handoffs\n\n## Decisions\n' > "$ft"

@@ -4,7 +4,9 @@
 # picker shows the task as needing him while the file exists; the Stop
 # hook's `done` never touches it. /decide removes a surface once all its
 # items are answered and recorded, and the file goes with the last one;
-# closing the task's session (wb down, wb done) removes it too.
+# closing the task's session (wb down, wb done) removes it too. Writers
+# hold the task's lock, so two surfaces opening or closing at once can't
+# drop each other's lines.
 
 # wb_needs_you_file <stem>
 wb_needs_you_file() { printf '%s/needs-you/%s\n' "$WB_STATE_DIR" "$1"; }
@@ -61,7 +63,9 @@ cmd_decide_open() {
   _wb_entry_task decide-open "$@" || return 1
   case "${WB_ARGS[0]:-}" in buffer|page) ;; *) echo "usage: wb decide-open <buffer|page> <file|url>" >&2; return 1 ;; esac
   [ -n "${WB_ARGS[1]:-}" ] || { echo "usage: wb decide-open <buffer|page> <file|url>" >&2; return 1; }
+  wb_lock_acquire "$WB_TASK" || return 75
   wb_decide_open "$(wb_task_stem "$WB_TASK")" "${WB_ARGS[0]}" "${WB_ARGS[1]}"
+  wb_lock_release "$WB_TASK"
 }
 
 # cmd_decide_buffer <answer_file> [--task …] — open the file in nvim in a
@@ -82,9 +86,12 @@ cmd_decide_buffer() {
     echo "wb decide-buffer: $stem has no tmux session to open the buffer in" >&2; return 1
   fi
   editor="$(command -v nvim)" || { echo "wb decide-buffer: nvim isn't on the PATH" >&2; return 1; }
+  # Locked across the split, so the surface is marked as soon as it exists.
+  wb_lock_acquire "$WB_TASK" || return 75
   pane="$(tmux split-window -h -t "$target" -c "${file%/*}" -P -F '#{pane_id}' "$(printf '%q ' "$editor" "$file")")" \
-    || { echo "wb decide-buffer: tmux couldn't open the split" >&2; return 1; }
+    || { wb_lock_release "$WB_TASK"; echo "wb decide-buffer: tmux couldn't open the split" >&2; return 1; }
   wb_decide_open "$stem" buffer "$file" "$pane"
+  wb_lock_release "$WB_TASK"
   while _wb_pane_exists "$pane"; do sleep 1; done
   echo "$file"
 }
@@ -98,8 +105,10 @@ cmd_decide_clear() {
   [ -n "$ref" ] || { echo "usage: wb decide-clear <file|url> | --all" >&2; return 1; }
   f="$(wb_needs_you_file "$(wb_task_stem "$WB_TASK")")"
   [ -f "$f" ] || return 0
+  wb_lock_acquire "$WB_TASK" || return 75
   [ "$ref" = --all ] || _wb_decide_drop "$f" "$ref"
   [ "$ref" != --all ] && [ -s "$f" ] || rm -f "$f"
+  wb_lock_release "$WB_TASK"
 }
 
 # cmd_decide_spec_check <spec.json> — check a /decide page spec before it is
