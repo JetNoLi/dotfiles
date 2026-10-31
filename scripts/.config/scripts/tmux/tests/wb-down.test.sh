@@ -18,8 +18,10 @@ wb new --bg dotfiles bg-task >/dev/null 2>&1
 WT="$REPO/.worktrees/bg-task"
 mkdir -p "$(wb_transcript_dir "$WT")"
 echo '{"parentUuid":"x","timestamp":"2026-10-28T10:00:00.000Z"}' > "$(wb_transcript_dir "$WT")/86e34592-cdb9-4da2-bf55-6db85f3bc22e.jsonl"
+mkdir -p "$WB_STATE_DIR/needs-you"; echo "page https://claude.ai/artifact/x" > "$WB_STATE_DIR/needs-you/dotfiles--bg-task"
 out="$(wb down dotfiles--bg-task 2>&1)"; code=$?
 assert_eq "wb down on a --bg task succeeds" 0 "$code"
+assert_eq "it stops showing the task as needing Jet" no "$([ -e "$WB_STATE_DIR/needs-you/dotfiles--bg-task" ] && echo yes || echo no)"
 assert "it stops the background session by its short id" '^stop 86e34592$' "$(cat "$T/claude.log")"
 assert_eq "it kills the tmux session" "" "$(tmux list-sessions -F '#S' 2>/dev/null | grep bg-task)"
 assert "it keeps the worktree" 'bg-task' "$(git -C "$REPO" worktree list)"

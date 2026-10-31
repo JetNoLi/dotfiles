@@ -1,9 +1,10 @@
 # decide.sh — the open /decide surfaces of a task (KTD7, KTD8). Each task
 # with questions waiting on Jet has $WB_STATE_DIR/needs-you/<stem>, one line
-# per open surface: "buffer <answer file>" or "page <url>". The picker shows
-# the task as needing him while the file exists; the Stop hook's `done`
-# never touches it. /decide removes a surface once all its items are
-# answered and recorded, and the file goes with the last one.
+# per open surface: "buffer <answer file> <nvim pane>" or "page <url>". The
+# picker shows the task as needing him while the file exists; the Stop
+# hook's `done` never touches it. /decide removes a surface once all its
+# items are answered and recorded, and the file goes with the last one;
+# closing the task's session (wb down, wb done) removes it too.
 
 # wb_needs_you_file <stem>
 wb_needs_you_file() { printf '%s/needs-you/%s\n' "$WB_STATE_DIR" "$1"; }
@@ -11,11 +12,33 @@ wb_needs_you_file() { printf '%s/needs-you/%s\n' "$WB_STATE_DIR" "$1"; }
 # wb_decide_surfaces <stem> — the task's open surfaces, one per line.
 wb_decide_surfaces() { cat "$(wb_needs_you_file "$1")" 2>/dev/null; return 0; }
 
-# wb_decide_open <stem> <buffer|page> <ref> — record an open surface.
+# wb_decide_open <stem> <buffer|page> <ref> [pane] — record an open surface.
+# A buffer's line carries its nvim pane and replaces an earlier line for the
+# same file.
 wb_decide_open() {
   local f; f="$(wb_needs_you_file "$1")"
   mkdir -p "${f%/*}"
-  grep -qxF -- "$2 $3" "$f" 2>/dev/null || printf '%s %s\n' "$2" "$3" >> "$f"
+  [ "$2" != buffer ] || _wb_decide_drop "$f" "$3"
+  grep -qxF -- "$2 $3${4:+ $4}" "$f" 2>/dev/null || printf '%s %s%s\n' "$2" "$3" "${4:+ $4}" >> "$f"
+}
+
+# _wb_decide_drop <needs_you_file> <file|url> — remove that surface's line.
+_wb_decide_drop() {
+  [ -f "$1" ] || return 0
+  awk -v ref="$2" '
+    { r = $0; t = r; sub(/ .*/, "", t); sub(/^[^ ]* /, "", r); if (t == "buffer") sub(/ [^ ]*$/, "", r) }
+    r != ref' "$1" > "$1.tmp.$$" && mv "$1.tmp.$$" "$1"
+}
+
+# wb_decide_buffer_open <stem> — a buffer surface whose nvim pane is still
+# open. A closed pane's line can stay while its items wait on an answer;
+# those are read from the answer file, and a restart can't lose them.
+wb_decide_buffer_open() {
+  local kind rest
+  while read -r kind rest; do
+    [ "$kind" = buffer ] && _wb_pane_exists "${rest##* }" && return 0
+  done < <(wb_decide_surfaces "$1")
+  return 1
 }
 
 # _wb_pane_exists <pane_id> — tmux 3.5 prints nothing and exits 0 for a
@@ -59,9 +82,9 @@ cmd_decide_buffer() {
     echo "wb decide-buffer: $stem has no tmux session to open the buffer in" >&2; return 1
   fi
   editor="$(command -v nvim)" || { echo "wb decide-buffer: nvim isn't on the PATH" >&2; return 1; }
-  wb_decide_open "$stem" buffer "$file"
   pane="$(tmux split-window -h -t "$target" -c "${file%/*}" -P -F '#{pane_id}' "$(printf '%q ' "$editor" "$file")")" \
     || { echo "wb decide-buffer: tmux couldn't open the split" >&2; return 1; }
+  wb_decide_open "$stem" buffer "$file" "$pane"
   while _wb_pane_exists "$pane"; do sleep 1; done
   echo "$file"
 }
@@ -75,9 +98,7 @@ cmd_decide_clear() {
   [ -n "$ref" ] || { echo "usage: wb decide-clear <file|url> | --all" >&2; return 1; }
   f="$(wb_needs_you_file "$(wb_task_stem "$WB_TASK")")"
   [ -f "$f" ] || return 0
-  if [ "$ref" != --all ]; then
-    awk -v ref="$ref" '{ r = $0; sub(/^[^ ]* /, "", r) } r != ref' "$f" > "$f.tmp.$$" && mv "$f.tmp.$$" "$f"
-  fi
+  [ "$ref" = --all ] || _wb_decide_drop "$f" "$ref"
   [ "$ref" != --all ] && [ -s "$f" ] || rm -f "$f"
 }
 

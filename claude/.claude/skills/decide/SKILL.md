@@ -52,8 +52,9 @@ recorded, so ask in chat instead.
 5. When the background command finishes (or Jet says done), read the file and
    go on to section 5, "Record the answers".
 
-If the session is restarted while a buffer is open, the pick-up lists the
-answer file under open /decide surfaces. Read it from there.
+If the session is restarted while a buffer is open or still has unanswered
+items, the pick-up lists it under open /decide surfaces as
+`buffer <answer file> <nvim pane>`. Read the answer file from there.
 
 ## 4. The page
 

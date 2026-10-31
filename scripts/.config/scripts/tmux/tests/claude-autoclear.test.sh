@@ -111,11 +111,19 @@ assert "a pane marked working stops the restart" 'no restart: a new turn started
 screen "$EMPTY"; wb clear-request --task proj--ac >/dev/null; stop default '[{"id":"b1"}]'
 assert "background tasks in the session stop the restart" 'no restart: background tasks are still running' "$(tail -n1 "$LOG")"
 
-mkdir -p "$WB_STATE_DIR/needs-you"; echo "buffer /tmp/answers.md" > "$WB_STATE_DIR/needs-you/proj--ac"
+# An open buffer is a live nvim pane; any pane on the socket stands in.
+tmux new-session -d -s nvimsplit "sleep 300"
+N="$(tmux list-panes -t "=nvimsplit:" -F '#{pane_id}')"
+mkdir -p "$WB_STATE_DIR/needs-you"; echo "buffer /tmp/answers.md $N" > "$WB_STATE_DIR/needs-you/proj--ac"
 wb clear-request --task proj--ac >/dev/null; stop
 assert "an open /decide buffer stops the restart" 'no restart: a /decide buffer is open' "$(tail -n1 "$LOG")"
-rm -f "$WB_STATE_DIR/needs-you/proj--ac"
 assert_eq "no give-up path restarted anything" "" "$(cat "$T/claude.log")"
+
+tmux kill-session -t "=nvimsplit"; : > "$LOG"
+screen "$EMPTY"; wb clear-request --task proj--ac >/dev/null; stop
+wait_log 'restarted the pane|no restart'
+assert "a buffer whose split has closed doesn't stop it" 'restarted the pane' "$(tail -n1 "$LOG")"
+rm -f "$WB_STATE_DIR/needs-you/proj--ac"; : > "$T/claude.log"
 
 # --- a background session restarts by stop and start (KTD4) ------------------------------
 # The fake's `stop` drops registry entry 515151 and `--bg` writes a new one,

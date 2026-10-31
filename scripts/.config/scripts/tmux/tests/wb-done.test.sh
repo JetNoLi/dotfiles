@@ -11,8 +11,10 @@ REPO="$T/code/dotfiles"
 
 # --- a background task: stop first, then remove --------------------------------------------
 wb new --bg dotfiles bg-task >/dev/null 2>&1
+mkdir -p "$WB_STATE_DIR/needs-you"; echo "page https://claude.ai/artifact/x" > "$WB_STATE_DIR/needs-you/dotfiles--bg-task"
 out="$(WB_TEST_WT="$REPO/.worktrees/bg-task" wb done --close dotfiles--bg-task 2>&1)"; code=$?
 assert_eq "wb done on a --bg task succeeds" 0 "$code"
+assert_eq "it stops showing the task as needing Jet" no "$([ -e "$WB_STATE_DIR/needs-you/dotfiles--bg-task" ] && echo yes || echo no)"
 assert "it stops the background session" '^stop 86e34592$' "$(cat "$T/claude.log")"
 assert "it stops it before removing the worktree" 'worktree present at stop' "$(cat "$T/claude.log")"
 assert_eq "the worktree is gone" "" "$(git -C "$REPO" worktree list | grep bg-task)"

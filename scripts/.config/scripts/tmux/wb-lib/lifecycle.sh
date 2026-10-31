@@ -426,6 +426,7 @@ cmd_down() {
   fi
   wb_lock_release "$file"
 
+  [ "$keep" = 1 ] || rm -f "$(wb_needs_you_file "$(wb_task_stem "$file")")"
   [ "$keep" = 1 ] || [ -z "$session" ] || tmux kill-session -t "=$session" 2>/dev/null || true
   echo "wb down: $(wb_task_stem "$file") parked — worktree and record kept; resume it from DORMANT"
 }
@@ -499,6 +500,7 @@ cmd_done() {
   wb_task_set "$file" claude_sessions ""
   wb_task_append_handoff "$file" "wb done" "$note."
   wb_lock_release "$file"
+  rm -f "$(wb_needs_you_file "$(wb_task_stem "$file")")"
   echo "wb done: $(wb_task_stem "$file") — $note, task done"
 
   parent="$(wb_task_get "$file" parent)"
