@@ -58,6 +58,19 @@ assert_eq "in the task's worktree" "$(cd "$T/code/proj/.worktrees/ac" && pwd -P)
 assert "and falls back to a shell when Claude exits" '^(sh|bash)$' "$(tmux display -p -t "$P" '#{pane_current_command}')"
 for _ in $(seq 20); do grep -q 'new-sid' "$f" && break; sleep 0.25; done
 assert "the new session becomes @primary" '^new-sid@[^@]*@primary,old-sid@' "$(wb_task_get "$f" claude_sessions)"
+# _ac_record_primary waits for the task lock; held throughout, it gives up
+# and leaves the record as it was. The helper runs under the tmux server, so
+# its wait comes from the server's environment.
+tmux set-environment -g WB_LOCK_WAIT 1
+sleep 30 & holder=$!
+mkdir -p "$WB_STATE_DIR/locks/proj--ac.md.lock"; echo "$holder" > "$WB_STATE_DIR/locks/proj--ac.md.lock/pid"
+before="$(wb_task_get "$f" claude_sessions)"; : > "$LOG"
+screen "$EMPTY"; wb clear-request --task proj--ac >/dev/null 2>&1; stop
+wait_log 'restarted the pane'; sleep 3
+assert_eq "with the task locked, the new session isn't written over the record" "$before" "$(wb_task_get "$f" claude_sessions)"
+kill "$holder" 2>/dev/null; wait "$holder" 2>/dev/null
+tmux set-environment -gu WB_LOCK_WAIT
+
 n="$(lines)"; : > "$T/claude.log"
 stop; sleep 1
 assert_eq "a second Stop finds nothing to claim" "$n" "$(lines)"

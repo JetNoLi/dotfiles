@@ -107,7 +107,14 @@ before="$(cat "$c")"
 out="$(echo late | WB_LOCK_WAIT=1 wb checkpoint --task proj--race 2>&1)"; code=$?
 assert_eq "a held lock makes checkpoint exit 75" 75 "$code"
 assert_eq "and leaves the file unchanged" "$before" "$(cat "$c")"
+out="$(echo late | WB_LOCK_WAIT=1 wb decision Held --task proj--race 2>&1)"; code=$?
+assert_eq "a held lock makes decision exit 75" 75 "$code"
+assert_eq "and leaves the file unchanged" "$before" "$(cat "$c")"
+out="$(echo late | WB_LOCK_WAIT=1 wb handoff-to proj--race --task proj--bare 2>&1)"; code=$?
+assert_eq "a held lock on the target makes handoff-to exit 75" 75 "$code"
+assert_eq "and leaves the target unchanged" "$before" "$(cat "$c")"
 kill "$holder" 2>/dev/null; wait "$holder" 2>/dev/null
+
 
 sleep 1 & holder=$!
 echo "$holder" > "$WB_STATE_DIR/locks/proj--race.md.lock/pid"
@@ -116,6 +123,13 @@ echo "Renamed race" | wb _rename "" bg "$c" >/dev/null 2>&1
 assert "a picker rename waits for a held lock" '^[1-9]' "$(( SECONDS - start ))"
 assert_eq "then renames the task" "Renamed race" "$(wb_task_title "$c")"
 wait "$holder" 2>/dev/null
+
+# Each decision rewrites the whole file, so an unlocked one would drop the
+# others' entries.
+for i in 1 2 3 4 5 6; do (echo "answer $i" | wb decision "Race $i" --task proj--race >/dev/null) & done
+wait
+assert_eq "six concurrent decisions all land" 6 "$(grep -c '^### Race [1-6]$' "$c")"
+assert_eq "each with its answer" 6 "$(grep -c '^answer [1-6]$' "$c")"
 
 # --- task-for-session (KTD14) -----------------------------------------------------------
 tmux new-session -d -s proj--pick "sleep 300"
