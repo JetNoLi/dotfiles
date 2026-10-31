@@ -1,6 +1,6 @@
 # Mac wb follow-ups
 
-Last updated 2026-10-29. Two code reviews of `feat/mac-picker-native-status` found these items. None of them blocked the branch, and none is fixed yet. When one is fixed, delete it from this page.
+Last updated 2026-11-01. Three code reviews of `feat/mac-picker-native-status` found these items. None of them blocked the branch, and none is fixed yet. When one is fixed, delete it from this page.
 
 ## Bugs and races
 
@@ -11,11 +11,23 @@ Last updated 2026-10-29. Two code reviews of `feat/mac-picker-native-status` fou
 - **Non-ASCII paths miss their transcripts.** Claude turns each byte of a multibyte character into a dash, and `wb_transcript_dir` turns each character into one, so the two folder names differ.
 - **Picker `wb done` ignores its own errors.** `cmd_done` runs under `||` on the picker path, so `set -e` is off inside it. A failed task-file write still reports success.
 - **Stale "still running" message.** It can appear after the job has already exited.
+- **One task's sessions cancel each other's clear.** A prompt in a second Claude session mapped to the same task runs `_clear-cancel` and drops the first session's pending /handoff clear. It fails safe: no restart, and the checkpoint stays.
+- **`wb_task_set_primary` keeps duplicates.** Making a session @primary that is already in `claude_sessions` leaves its old entry in the list as well, so a repeated restart record grows.
 
 ## Fragile assumptions
 
 - The output of `claude --bg` and the `tmux` field in Claude's registry were learned by probing, not from documentation. A Claude Code update could change either one.
+- The auto-clear's background-tasks guard reads `.background_tasks` from the Stop hook's stdin, and no probe has confirmed Claude Code sends it. If it doesn't, a /handoff restart can kill a running background shell. A probe with one real Stop payload is pending.
+- `_ac_input_pending` matches the exact bytes `capture-pane -e` prints around Claude's input line, tested only against synthetic screens. A change to Claude's UI fails safe, but turns auto-clear off without a word.
 - The `wb_repo_list` cache is lost inside subshells. This makes things slower but not wrong.
+
+## /decide outside a wb task
+
+The first real run of `/decide` was from a session that isn't a wb task.
+
+- `decide-path` and `decide-open` both need a task, so the page had to be made by hand and nothing marked it as needing Jet. A way to name an answer file without a task would let it run anywhere.
+- The skill makes the page under `$WB_STATE_DIR/decide/`, but the Artifact tool only publishes from the working directory or the session scratchpad, so the files had to be copied first. Section 4 of the skill should make them in one of those.
+- The comment watch's auto-reply said the answers were being recorded before anything was. The skill already warns about it; the wording on the page could too.
 
 ## Tidy-ups
 
