@@ -142,6 +142,11 @@ assert_eq "with no pane, a session id whose registry name is a task stem maps to
   "$e" "$(TMUX_PANE= wb task-for-session --session-id sid-bg)"
 assert_eq "inside Claude's own commands, \$CLAUDE_PID finds the same session" \
   "$e" "$(CLAUDE_PID=424242 wb task-for-session)"
+assert_eq "and still does when the given session id isn't in the registry yet" \
+  "$e" "$(TMUX_PANE= CLAUDE_PID=424242 wb task-for-session --session-id not-registered-yet)"
+jq '.name = "no-such-task"' "$CLAUDE_SESSIONS_DIR/424242.json" > "$T/r.json" && mv "$T/r.json" "$CLAUDE_SESSIONS_DIR/424242.json"
+assert_eq "a pane-less entry whose name is no task falls back to \$TMUX_PANE" \
+  "$p" "$(TMUX_PANE="$PANE" wb task-for-session --session-id sid-bg)"
 out="$(TMUX_PANE= wb task-for-session --session-id nobody 2>/dev/null)"; code=$?
 assert_eq "an unknown session id prints nothing" "" "$out"
 assert_eq "and fails" 1 "$code"

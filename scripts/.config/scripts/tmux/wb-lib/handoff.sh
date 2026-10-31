@@ -4,26 +4,25 @@
 # calls could never hold it across a write.
 
 # _wb_session_lookup [session_id] — find the Claude session and its task.
-# The session is looked up in the registry by the given id, else by
+# The session is looked up in the registry by the given id, then by
 # $CLAUDE_PID, which Claude Code sets for the commands it runs. An entry with
 # a pane goes through that pane's tmux session; one without (a background
 # session) maps its name, which wb new sets to the task stem. With no
-# registry entry, $TMUX_PANE is tried. Sets WB_LOOKUP_FILE, WB_LOOKUP_SID
-# and WB_LOOKUP_PANE; fails when nothing maps to a task.
+# registry entry, or a pane-less one whose name is no task, $TMUX_PANE is
+# tried. Sets WB_LOOKUP_FILE, WB_LOOKUP_SID and WB_LOOKUP_PANE; fails when
+# nothing maps to a task.
 _wb_session_lookup() {
   local sid="${1:-}" idx="" file
   WB_LOOKUP_FILE=""; WB_LOOKUP_SID="$sid"; WB_LOOKUP_PANE=""
   _wb_registry_load
-  if [ -n "$sid" ]; then idx="${WB_REG_BY_SID[$sid]:-}"
-  elif [ -n "${CLAUDE_PID:-}" ]; then idx="${WB_REG_BY_PID[$CLAUDE_PID]:-}"
-  fi
+  [ -z "$sid" ] || idx="${WB_REG_BY_SID[$sid]:-}"
+  [ -n "$idx" ] || [ -z "${CLAUDE_PID:-}" ] || idx="${WB_REG_BY_PID[$CLAUDE_PID]:-}"
   if [ -n "$idx" ]; then
     WB_LOOKUP_SID="$(wb_registry_field "$idx" 1)"
     WB_LOOKUP_PANE="$(wb_registry_field "$idx" 3)"
     if [ -z "$WB_LOOKUP_PANE" ]; then
       file="$(wb_task_file_for_stem "$(wb_registry_field "$idx" 6)")"
-      wb_task_exists "$file" || return 1
-      WB_LOOKUP_FILE="$file"; return 0
+      if wb_task_exists "$file"; then WB_LOOKUP_FILE="$file"; return 0; fi
     fi
   fi
   WB_LOOKUP_PANE="${WB_LOOKUP_PANE:-${TMUX_PANE:-}}"
