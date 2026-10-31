@@ -145,12 +145,15 @@ helper() {
       && _ac_give_up "$stem" "$claimed" "$att" "you're attached to the background session $job"
     wb_watchdog 10 "$bin" stop "$job" >/dev/null 2>&1 </dev/null \
       || _ac_give_up "$stem" "$claimed" "" "the background session $job wouldn't stop"
-    if _wb_start_bg "$name" "$wt" "$file" "$WB_CLEAR_PROMPT" "$perm" >/dev/null 2>&1; then
-      rm -f "$claimed"
-      wb_handoff_log "$stem" "restarted the background session $name in a clean context"
-    else
-      _ac_give_up "$stem" "$claimed" "" "the background session stopped but didn't start again; run wb resume"
-    fi
+    _wb_start_bg "$name" "$wt" "$file" "$WB_CLEAR_PROMPT" "$perm" >/dev/null 2>&1
+    case $? in
+      0) rm -f "$claimed"
+         wb_handoff_log "$stem" "restarted the background session $name in a clean context" ;;
+      75) # Started, but the record was locked: the pick-up marker stays for it.
+         rm -f "$claimed"
+         wb_handoff_log "$stem" "restarted the background session $name; the task was locked, so its new session isn't @primary yet" ;;
+      *) _ac_give_up "$stem" "$claimed" "" "the background session stopped but didn't start again; run wb resume" ;;
+    esac
   fi
   exit 0
 }

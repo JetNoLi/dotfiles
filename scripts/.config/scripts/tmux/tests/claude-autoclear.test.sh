@@ -175,4 +175,16 @@ assert "a job that stops but won't start says to resume it" \
   "no restart: the background session stopped but didn't start again; run wb resume" "$(tail -n1 "$LOG")"
 assert_eq "and leaves no pick-up marker" no "$([ -e "$WB_STATE_DIR/pickup/proj--bgac" ] && echo yes || echo no)"
 
+# Started, then the record's lock times out: the new session still needs its
+# pick-up.
+bgsession; : > "$LOG"; : > "$T/claude.log"
+sleep 30 & holder=$!
+mkdir -p "$WB_STATE_DIR/locks/proj--bgac.md.lock"; echo "$holder" > "$WB_STATE_DIR/locks/proj--bgac.md.lock/pid"
+wb clear-request --session-id bg-sid >/dev/null; WB_LOCK_WAIT=1 bgstop
+wait_log 'restarted the background session|no restart'
+assert "a locked record after the start says so" "restarted the background session proj--bgac; the task was locked" "$(tail -n1 "$LOG")"
+assert "the session was started" '^--bg -n proj--bgac' "$(cat "$T/claude.log")"
+assert_eq "and keeps its pick-up marker" wait "$(cat "$WB_STATE_DIR/pickup/proj--bgac" 2>/dev/null)"
+kill "$holder" 2>/dev/null; wait "$holder" 2>/dev/null
+
 finish
