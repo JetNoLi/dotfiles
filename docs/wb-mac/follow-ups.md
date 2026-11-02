@@ -17,7 +17,7 @@ Last updated 2026-11-01. Three code reviews of `feat/mac-picker-native-status` f
 ## Fragile assumptions
 
 - The output of `claude --bg` and the `tmux` field in Claude's registry were learned by probing, not from documentation. A Claude Code update could change either one.
-- The auto-clear's background-tasks guard reads `.background_tasks` from the Stop hook's stdin, and no probe has confirmed Claude Code sends it. If it doesn't, a /handoff restart can kill a running background shell. A probe with one real Stop payload is pending.
+- The auto-clear's background-tasks guard reads `.background_tasks` from the Stop hook's stdin. A probe on 2026-11-02 confirmed the field: each entry has `type` (`shell`, `monitor`) and `status`. Its shape isn't documented, so a Claude Code update could change it.
 - `_ac_input_pending` matches the exact bytes `capture-pane -e` prints around Claude's input line, tested only against synthetic screens. A change to Claude's UI fails safe, but turns auto-clear off without a word.
 - The `wb_repo_list` cache is lost inside subshells. This makes things slower but not wrong.
 

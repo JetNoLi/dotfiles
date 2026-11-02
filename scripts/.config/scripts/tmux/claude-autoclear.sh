@@ -80,7 +80,11 @@ stop_hook() {
   input=""; [ -t 0 ] || input="$(cat)"
   sid="$(jq -r '.session_id // empty' <<< "$input" 2>/dev/null)"
   perm="$(jq -r '.permission_mode // empty' <<< "$input" 2>/dev/null)"
-  bg_tasks="$(jq -r '(.background_tasks // []) | length' <<< "$input" 2>/dev/null)"
+  # Running shells, agents and the like would die with the restart. Monitors
+  # are left out: every published artifact keeps one (its live watch), and
+  # /decide's pick-up re-arms the one its page needs.
+  bg_tasks="$(jq -r '[(.background_tasks // [])[] | select(.type != "monitor" and (.status // "running") == "running")] | length' \
+    <<< "$input" 2>/dev/null)"
 
   _wb_session_lookup "$sid" || exit 0
   stem="$(wb_task_stem "$WB_LOOKUP_FILE")"

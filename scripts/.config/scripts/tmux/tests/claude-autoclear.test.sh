@@ -121,8 +121,17 @@ tmux set -p -t "$P" @claude_working 1
 stop; wait_log 'a new turn started'
 assert "a pane marked working stops the restart" 'no restart: a new turn started' "$(tail -n1 "$LOG")"
 
-screen "$EMPTY"; wb clear-request --task proj--ac >/dev/null; stop default '[{"id":"b1"}]'
-assert "background tasks in the session stop the restart" 'no restart: background tasks are still running' "$(tail -n1 "$LOG")"
+# The shape a real Stop payload has (probed 2026-11-02): artifact watches
+# are monitors, and a run_in_background command is a shell.
+MON='{"id":"s1","type":"monitor","status":"running","description":"live updates for artifact x"}'
+SH='{"id":"b1","type":"shell","status":"running","command":"sleep 90"}'
+screen "$EMPTY"; wb clear-request --task proj--ac >/dev/null; stop default "[$MON,$SH]"
+assert "a running background shell stops the restart" 'no restart: background tasks are still running' "$(tail -n1 "$LOG")"
+
+screen "$EMPTY"; : > "$LOG"; : > "$T/claude.log"; wb clear-request --task proj--ac >/dev/null; stop default "[$MON]"
+wait_log 'restarted the pane|no restart'
+assert "an artifact's live watch alone doesn't" 'restarted the pane' "$(tail -n1 "$LOG")"
+: > "$T/claude.log"
 
 # An open buffer is a live nvim pane; any pane on the socket stands in.
 tmux new-session -d -s nvimsplit "sleep 300"
