@@ -53,6 +53,4 @@ The first real run of `/decide` was from a session that isn't a wb task.
 
 ## Housekeeping
 
-- Commit `b95066a` says agents stop before the dirty check, and `5b6f8a4` reverses that. Read the two together, or squash them before the PR.
-- The uncommitted extended-keys lines in `tmux/.config/tmux/tmux.conf` and the nvim edits are waiting on Jet's decision.
 - `gh` isn't authenticated, so `wb down` never moves a task to review. The check stays in place.
