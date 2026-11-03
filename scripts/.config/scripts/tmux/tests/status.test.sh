@@ -49,6 +49,8 @@ tmux set -p -t "$pane1" @claude_blocked needs-input
 assert_eq "a stale needs-input marker yields to registry busy" working "$(status_of "$pane1")"
 assert_eq "and without a registry entry it still gives needs you" needs-input \
   "$(CLAUDE_SESSIONS_DIR="$T/no-such-dir" status_of "$pane1")"
+registry "$pid1" idle "$pane1"
+assert_eq "needs-input over registry idle (the idle prompt) still gives needs you" needs-input "$(status_of "$pane1")"
 tmux set -pu -t "$pane1" @claude_blocked
 
 # --- fallback ----------------------------------------------------------------------

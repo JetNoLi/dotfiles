@@ -181,13 +181,13 @@ _wb_claude_panes_all() {
     else
       _wb_scrape_status "$target" "$title" "$working"
     fi
-    # wb's own markers win over either source, except needs-input over a
-    # live registry entry: no hook clears it when a prompt is approved, and
-    # the registry reports the prompt itself as waiting.
+    # wb's own markers win over either source, except needs-input when the
+    # registry says the agent is working: no hook clears the marker when a
+    # permission prompt is approved.
     case "$blocked" in
       "")          status="$REPLY" ;;
       done)        status=done ;;
-      needs-input) if [ -n "$idx" ]; then status="$REPLY"; else status=needs-input; fi ;;
+      needs-input) if [ -n "$idx" ] && [ "$REPLY" = working ]; then status=working; else status=needs-input; fi ;;
       *)           status=needs-input ;;
     esac
     case "$status" in needs-input) rank=0 ;; done) rank=1 ;; working) rank=2 ;; *) rank=3 ;; esac

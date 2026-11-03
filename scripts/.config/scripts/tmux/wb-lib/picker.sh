@@ -296,9 +296,10 @@ _new() {
 
 # _ctrl_x_done <wb done args...> — wb done from ctrl-x. become() hands
 # stdout to fzf as the selection, so all output goes to the terminal, and a
-# refusal is held there before the picker window closes.
+# refusal is held there before the picker window closes. Fails after a
+# refusal, so callers add nothing to it.
 _ctrl_x_done() {
-  cmd_done "$@" >&2 || { _wb_hold "done failed — the task is still open"; return 0; }
+  cmd_done "$@" >&2 || { _wb_hold "done failed — the task is still open"; return 1; }
 }
 
 # _ctrl_x <kind> <session> <target> <ref> — `ctrl-x`: a task row asks, then
@@ -316,21 +317,21 @@ _ctrl_x() {
         _ctrl_x_confirm "$(wb_session_task_file "$session" 2>/dev/null || true)" "$session" "$effect" || return 0
         cd "$HOME" 2>/dev/null || true   # never tear down the worktree we stand in
         if [ "$self" = 1 ]; then
-          _ctrl_x_done "$session"
+          _ctrl_x_done "$session" || return 0
           _wb_hold "not closing '$session' via ctrl-x — it's your current session"
         else
-          _ctrl_x_done --close "$session"
+          _ctrl_x_done --close "$session" || return 0
         fi
       elif [ -n "$ref" ]; then
         _ctrl_x_confirm "$ref" "$(wb_task_stem "$ref")" "Removes the worktree (the branch stays) and marks the task done." || return 0
-        _ctrl_x_done "$(wb_task_stem "$ref")"
+        _ctrl_x_done "$(wb_task_stem "$ref")" || return 0
       fi
       ;;
     bg)
       wb_task_exists "$ref" || { _wb_hold "this background session has no task to close"; return 0; }
       _ctrl_x_confirm "$ref" "$(wb_task_stem "$ref")" "Stops the background agent, removes the worktree and marks the task done." || return 0
       cd "$HOME" 2>/dev/null || true
-      _ctrl_x_done "$(wb_task_stem "$ref")"
+      _ctrl_x_done "$(wb_task_stem "$ref")" || return 0
       ;;
     repo)  [ -n "$session" ] && tmux kill-session -t "=$session" 2>/dev/null ;;
     agent) [ -n "$target" ] && tmux kill-pane -t "$target" 2>/dev/null ;;
