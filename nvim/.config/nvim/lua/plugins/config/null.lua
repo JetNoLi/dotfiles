@@ -27,11 +27,11 @@ return {
 					},
 					prefer_local = "node_modules/.bin", -- use project's Prettier if available
 				}),
-				require("none-ls.diagnostics.eslint"), -- requires none-ls-extras.nvim
+				-- require("none-ls.diagnostics.eslint"), -- requires none-ls-extras.nvim
 			},
 		})
 	end,
-	on_attach = function(client, bufnr)
+	on_attach = function(client, bufnr, augroup)
 		if client.supports_method("textDocument/formatting") then
 			vim.api.nvim_clear_autocmds({ group = augroup, buffer = bufnr })
 			vim.api.nvim_create_autocmd("BufWritePre", {

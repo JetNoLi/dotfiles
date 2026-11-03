@@ -1,7 +1,7 @@
 return {
 	"gaoDean/autolist.nvim",
 	-- lazy-load when opening or creating text-like files
-	-- event = { "BufReadPre", "BufNewFile" },
+	event = { "BufReadPre", "BufNewFile" },
 	ft = { "markdown", "text", "tex", "plaintex", "norg" },
 	config = function()
 		-- use all the defaults, plus sensible keymaps:

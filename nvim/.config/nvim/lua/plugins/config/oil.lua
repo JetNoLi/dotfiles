@@ -215,7 +215,7 @@ return {
 			["g\\"] = { "actions.toggle_trash", mode = "n" },
 
 			-- split a new tmux pane at cwd
-			["<C-o>"] = function()
+			["<Leader><C-o>"] = function()
 				local cwd = oil.get_current_dir()
 				if cwd then
 					local cmd = string.format("tmux split-window -h -c %s", vim.fn.shellescape(cwd))
