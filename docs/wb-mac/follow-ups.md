@@ -8,7 +8,6 @@ Last updated 2026-11-01. Three code reviews of `feat/mac-picker-native-status` f
 - **`wb new --bg` starts the agent before taking the lock.** If the run fails after the start and is retried, a second background agent can start.
 - **Renamed sessions are lost.** After a session is renamed, `wb_bg_attach` and `_wb_resolve` can't find it, so `wb down` and Enter on a background row fail.
 - **Non-ASCII paths miss their transcripts.** Claude turns each byte of a multibyte character into a dash, and `wb_transcript_dir` turns each character into one, so the two folder names differ.
-- **Picker `wb done` ignores its own errors.** `cmd_done` runs under `||` on the picker path, so `set -e` is off inside it. A failed task-file write still reports success.
 - **Stale "still running" message.** It can appear after the job has already exited.
 - **One task's sessions cancel each other's clear.** A prompt in a second Claude session mapped to the same task runs `_clear-cancel` and drops the first session's pending /handoff clear. It fails safe: no restart, and the checkpoint stays.
 

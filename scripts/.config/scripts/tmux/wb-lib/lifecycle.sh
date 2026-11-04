@@ -505,11 +505,16 @@ cmd_done() {
   fi
   [ "$close" = 1 ] && [ -n "$session" ] && note="$note, session closed"
 
+  # Each write is checked: the picker runs this under ||, where set -e is off.
   wb_lock_acquire "$file" || return 75
-  wb_task_set "$file" status done
-  wb_task_set "$file" closed "$(date +%F)"
-  wb_task_set "$file" claude_sessions ""
-  wb_task_append_handoff "$file" "wb done" "$note."
+  if ! { wb_task_set "$file" status done \
+      && wb_task_set "$file" closed "$(date +%F)" \
+      && wb_task_set "$file" claude_sessions "" \
+      && wb_task_append_handoff "$file" "wb done" "$note."; }; then
+    wb_lock_release "$file"
+    echo "wb done: $note, but writing $file failed; it may not say done" >&2
+    return 1
+  fi
   rm -f "$(wb_needs_you_file "$(wb_task_stem "$file")")"
   wb_lock_release "$file"
   echo "wb done: $(wb_task_stem "$file") — $note, task done"

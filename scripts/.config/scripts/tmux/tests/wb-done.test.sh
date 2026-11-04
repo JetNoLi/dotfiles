@@ -81,4 +81,13 @@ wb new --parent dotfiles--parent dotfiles child >/dev/null 2>&1
 out="$(wb done dotfiles--child 2>&1)"
 assert "closing the last open child names the parent to close" 'close it with: wb done dotfiles--parent' "$out"
 
+# --- a store write that fails, under || as the picker runs it -----------------------------------
+wb new dotfiles ro-store >/dev/null 2>&1
+chmod a-w "$TASKS_DIR"
+out="$( (cmd_done dotfiles--ro-store || echo "caller saw failure") 2>&1 )"
+chmod u+w "$TASKS_DIR"
+assert "a failed task-file write is reported, not claimed as done" 'writing .* failed' "$out"
+assert "and the caller sees the failure" 'caller saw failure' "$out"
+assert_eq "it doesn't say the task is done" "" "$(grep 'task done' <<< "$out")"
+
 finish
