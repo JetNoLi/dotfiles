@@ -42,7 +42,8 @@ assert_eq "the record is unchanged" "$sessions" "$(wb_task_get "$TASKS_DIR/dotfi
 wb new dotfiles fg-task >/dev/null 2>&1
 WT2="$REPO/.worktrees/fg-task"
 tmux respawn-pane -k -t =dotfiles--fg-task:agent "bash -c '(exec -a claude sleep 300) & wait'"
-sleep 0.3
+pane_child() { pgrep -P "$(tmux display -p -t =dotfiles--fg-task:agent '#{pane_pid}')" >/dev/null; }
+wait_until 5 pane_child
 pane="$(tmux display -p -t =dotfiles--fg-task:agent '#{pane_id}')"
 cpid="$(pgrep -P "$(tmux display -p -t "$pane" '#{pane_pid}')" | head -n1)"
 registry "$cpid" idle "$pane" interactive "" live-sid "" "$WT2"

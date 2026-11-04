@@ -33,9 +33,11 @@ A single question doesn't need a surface: ask it in chat.
 For both, open the buffer (section 3) and publish the page (section 4) in the
 same turn; each is cleared on its own once its items are recorded.
 
-"A buffer" or "a page" in Jet's request overrides the table. If the session
-isn't a wb task (`wb task-for-session` fails), say so: answers can't be
-recorded, so ask in chat instead.
+"A buffer" or "a page" in Jet's request overrides the table. Outside a wb
+task (`wb task-for-session` fails), both surfaces still work inside tmux:
+they belong to the tmux session, which the picker shows as needing Jet. Only
+recording the answers differs (section 5). Outside tmux as well, ask in
+chat.
 
 ## 3. The buffer
 
@@ -62,11 +64,13 @@ A private claude.ai page. Answers save as Jet clicks, so he can stop halfway
 and finish on his phone. Pages go to claude.ai, so use them only on the Mac,
 which holds only personal repos.
 
-1. Make the page's folder and copy the template:
+1. Make the page's folder and copy the template. The Artifact tool publishes
+   only from the working directory or the session scratchpad, so the folder
+   goes in the scratchpad (in the working directory when there is none):
 
    ```bash
-   f=$(~/.config/scripts/tmux/wb decide-path); d=${f%.md}; mkdir -p "$d"
-   cp "${CLAUDE_SKILL_DIR}/page/page.html" "$d/page.html"; echo "$d"
+   f=$(~/.config/scripts/tmux/wb decide-path); d="<scratchpad>/decide-$(basename "${f%.md}")"
+   mkdir -p "$d"; cp "${CLAUDE_SKILL_DIR}/page/page.html" "$d/page.html"; echo "$d"
    ```
 
 2. Write `$d/spec.json` with the Write tool, as `references/page-spec.md`
@@ -120,11 +124,15 @@ answer never duplicates.
 ENTRY
 ```
 
+Outside a wb task there's no Decisions section to write to. Record each
+answer where the work keeps its notes (a review's run folder, a plan, a
+doc), or in chat when it has none, and say where.
+
 - An item left blank takes its stated default. Record it as "default taken".
 - Name any item Jet couldn't answer or questioned, and ask about it in chat.
 - When every item from a surface is recorded, clear that surface:
   `~/.config/scripts/tmux/wb decide-clear <file or url>`. The picker stops
-  showing the task as needing Jet once every open surface is cleared.
+  showing the task (or session) as needing Jet once every open surface is cleared.
 
 Then say in one line what was recorded, and carry on with the work the
 answers unblock.

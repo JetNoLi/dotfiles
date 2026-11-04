@@ -46,6 +46,16 @@ out="$(card "$target" "" "" "" | plain)"
 assert_eq "a turn started after the recap hides it" 0 "$(grep -c Recap <<< "$out")"
 assert "the new prompt is the one shown" 'You asked.*One more thing' "$(tr '\n' ' ' <<< "$out")"
 
+# --- the other registry states -----------------------------------------------------------
+state_line() { registry "$cpid" "$1" "$pane" interactive "" card-sid; card "$target" "" "" "" | plain | head -n1; }
+touch "$tr"
+assert "a busy session with recent activity says busy" '^busy <1m' "$(state_line busy)"
+touch_epoch $(( $(date +%s) - 900 )) "$tr"   # past WB_CARD_QUIET_AFTER (600s)
+assert "busy with no activity for a while says quiet" '^quiet .*\(busy, no activity\)' "$(state_line busy)"
+assert "waiting says it's waiting on you" '^waiting on you' "$(state_line waiting)"
+assert_eq "a status it doesn't know says so" "state unknown" "$(state_line rebooting)"
+registry "$cpid" idle "$pane" interactive "" card-sid
+
 # --- no prompt yet / no Claude ---------------------------------------------------------
 : > "$tr"
 out="$(card "$target" "" "" "")"; code=$?

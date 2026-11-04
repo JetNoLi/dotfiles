@@ -23,7 +23,7 @@ echo "Q1: yes or no?" > "$ans"
 
 TMUX_PANE="$P" WB_TEST_NVIM_SECS=2 wb decide-buffer "$ans" > "$T/out" 2>&1 &
 waiter=$!
-sleep 1
+wait_until 5 test -s "$NY"
 assert_eq "it opens a split in the task's session" 2 "$(tmux list-panes -t "=proj--dec:" | wc -l | tr -d ' ')"
 split="$(tmux list-panes -t "=proj--dec:" -F '#{pane_id}' | grep -vxF "$P")"
 assert_eq "and marks the task as needing Jet, with the split's pane" "buffer $ans $split" "$(cat "$NY" 2>/dev/null)"
@@ -85,9 +85,23 @@ assert_eq "leaving the task not needing Jet" no "$([ -e "$WB_STATE_DIR/needs-you
 # --- outside a task ----------------------------------------------------------------------
 tmux new-session -d -s plain "sleep 300"
 Q="$(tmux list-panes -t "=plain:" -F '#{pane_id}')"
-out="$(TMUX_PANE="$Q" wb decide-buffer "$ans" 2>&1)"; code=$?
-assert_eq "with no task for the session it refuses" 1 "$code"
-assert "and says so" 'no task' "$out"
-assert_eq "opening nothing" 1 "$(tmux list-panes -t "=plain:" | wc -l | tr -d ' ')"
+PNY="$WB_STATE_DIR/needs-you/plain"
+pans="$(TMUX_PANE="$Q" wb decide-path)"
+assert "outside a task, decide-path gives a file under the tmux session's name" "^$WB_STATE_DIR/decide/plain/[0-9-]+\.md$" "$pans"
+echo "Q: ok?" > "$pans"
+TMUX_PANE="$Q" WB_TEST_NVIM_SECS=1 wb decide-buffer "$pans" > "$T/out" 2>&1; code=$?
+assert_eq "decide-buffer opens and waits there too" 0 "$code"
+assert "and marks the session as needing Jet" "^buffer $pans %[0-9]+$" "$(cat "$PNY" 2>/dev/null)"
+TMUX_PANE="$Q" wb decide-open page https://claude.ai/artifact/plain
+assert "decide-open adds a page to it" '^page https://claude.ai/artifact/plain$' "$(cat "$PNY")"
+TMUX_PANE="$Q" wb decide-clear --all
+assert_eq "and decide-clear clears it" no "$([ -e "$PNY" ] && echo yes || echo no)"
+
+out="$(wb decide-path 2>&1)"; code=$?
+assert_eq "outside a task and outside tmux it refuses" 1 "$code"
+assert "and says why" 'neither a wb task nor in tmux' "$out"
+out="$(TMUX_PANE="$Q" wb decide-path --task nope 2>&1)"; code=$?
+assert_eq "a --task that names no task still fails" 1 "$code"
+assert "and says so" "no task 'nope'" "$out"
 
 finish

@@ -17,7 +17,7 @@ task="$T/tasks/proj--locked.md"
 lib="$(dirname "$WB")/wb-lib/compat.sh"
 start=$SECONDS
 "$BASH" -c "source '$lib'; wb_lock_acquire '$task' && sleep 1.5 && wb_lock_release '$task'" &
-sleep 0.3
+wait_until 5 test -s "$(_wb_lock_path "$task")/pid"
 "$BASH" -c "source '$lib'; wb_lock_acquire '$task' 5"; code=$?
 wait
 assert_eq "a second writer gets the lock once the first releases" 0 "$code"
@@ -25,7 +25,7 @@ assert "the second writer waited for the first" '^[1-9]' "$(( SECONDS - start ))
 
 "$BASH" -c "source '$lib'; wb_lock_acquire '$task' && sleep 3" &
 holder=$!
-sleep 0.3
+wait_until 5 grep -qx "$holder" "$(_wb_lock_path "$task")/pid"
 out="$("$BASH" -c "source '$lib'; wb_lock_acquire '$task' 0" 2>&1)"; code=$?
 assert_eq "a live holder makes a no-wait acquire fail" 75 "$code"
 assert "the refusal names the holder pid" "pid $holder" "$out"

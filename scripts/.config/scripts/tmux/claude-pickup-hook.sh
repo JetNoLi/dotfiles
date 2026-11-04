@@ -40,7 +40,7 @@ set +e +u
 file="$(wb_task_for_session "$sid" 2>/dev/null)" || exit 0
 stem="$(wb_task_stem "$file")"
 marker="$(wb_pickup_marker "$stem")"
-mode=wait
+mode="wait"
 if [ -f "$marker" ]; then
   [ "$(cat "$marker" 2>/dev/null)" = start ] && mode=start
   rm -f "$marker"

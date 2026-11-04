@@ -33,7 +33,7 @@ wb new --bg dotfiles bg-task >/dev/null 2>&1
 btask="$TASKS_DIR/dotfiles--bg-task.md"
 : > "$T/focus.log"; : > "$T/claude.log"
 wb_bg_attach 86e34592 "$btask"
-sleep 0.5
+wait_until 5 grep -q '^attach' "$T/claude.log"
 assert "the first Enter attaches in the task session's agent window" '^attach 86e34592$' "$(cat "$T/claude.log")"
 assert "and goes there" 'dotfiles--bg-task' "$(cat "$T/focus.log")"
 windows="$(tmux list-windows -t =dotfiles--bg-task: -F '#{window_name}' | xargs)"
@@ -51,7 +51,7 @@ tmux set -t =dotfiles--bg-task: @task "$btask"
 tmux rename-session -t =dotfiles--bg-task mine
 : > "$T/focus.log"; : > "$T/claude.log"
 wb_bg_attach 86e34592 "$btask"
-sleep 0.5
+wait_until 5 grep -q '^attach' "$T/claude.log"
 assert "Enter on a bg row attaches in the renamed session" '^attach 86e34592$' "$(cat "$T/claude.log")"
 assert "and goes there" '^.*mine' "$(cat "$T/focus.log")"
 assert_eq "it opens no stray bg- window elsewhere" "" "$(tmux list-windows -a -F '#{window_name}' | grep '^bg-')"

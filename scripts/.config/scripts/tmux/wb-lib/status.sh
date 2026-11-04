@@ -43,6 +43,7 @@ _wb_pane_claude_pid() {
 
 # --- session registry -------------------------------------------------------------
 
+# shellcheck disable=SC2034 # WB_REG_BY_PID is read in handoff.sh
 declare -gA WB_REG_BY_PANE=() WB_REG_BY_JOB=() WB_REG_BY_SID=() WB_REG_BY_PID=()
 WB_REG_LOADED=""
 WB_REG_ROWS=()
@@ -87,7 +88,8 @@ _wb_registry_load() {
 # them again, for a long-running caller that polls them.
 _wb_registry_reload() {
   WB_REG_LOADED=""; WB_PS_LOADED=""; WB_REG_ROWS=()
-  WB_REG_BY_PANE=(); WB_REG_BY_JOB=(); WB_REG_BY_SID=(); WB_REG_BY_PID=()
+  # shellcheck disable=SC2034 # WB_REG_BY_PID is read in handoff.sh
+  WB_REG_BY_PID=(); WB_REG_BY_PANE=(); WB_REG_BY_JOB=(); WB_REG_BY_SID=()
   WB_PS_START=(); WB_PS_CMD=(); WB_PS_KIDS=()
   _wb_registry_load
 }
@@ -109,8 +111,10 @@ _wb_map_status() {
   esac
 }
 
+# wb_status_rank <status> — its sort rank in REPLY, most urgent first. Set
+# in REPLY, not printed, so the per-pane loop calls it without a subshell.
 wb_status_rank() {
-  case "$1" in needs-input) echo 0 ;; done) echo 1 ;; working) echo 2 ;; *) echo 3 ;; esac
+  case "$1" in needs-input) REPLY=0 ;; done) REPLY=1 ;; working) REPLY=2 ;; *) REPLY=3 ;; esac
 }
 
 # --- pane-scrape fallback ------------------------------------------------------------
@@ -146,6 +150,7 @@ _wb_scrape_status() {
 # per process by wb_status_load.
 WB_PANES_CACHE=""
 WB_PANES_LOADED=""
+# shellcheck disable=SC2120 # rows.sh passes the session
 wb_claude_panes() {
   wb_status_load
   [ -n "$WB_PANES_CACHE" ] || return 0
@@ -196,13 +201,13 @@ _wb_claude_panes_all() {
     # permission prompt is approved.
     case "$blocked" in
       "")          status="$REPLY" ;;
-      done)        status=done ;;
+      done)        status="done" ;;
       needs-input) if [ -n "$idx" ] && [ "$REPLY" = working ]; then status=working; else status=needs-input; fi ;;
       *)           status=needs-input ;;
     esac
     # An open /decide surface needs Jet until it's answered (KTD7).
     [ "$status" = working ] || [ ! -e "$WB_STATE_DIR/needs-you/$sess" ] || status=needs-input
-    case "$status" in needs-input) rank=0 ;; done) rank=1 ;; working) rank=2 ;; *) rank=3 ;; esac
+    wb_status_rank "$status"; rank="$REPLY"
     task="${title#* }"; [ "$task" != "$title" ] && [ -n "$task" ] || task="Claude Code"
     printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$rank" "$target" "$status" "$task" "$pane" "$sid"
   done < <(tmux list-panes -a -F \

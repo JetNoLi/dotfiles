@@ -340,7 +340,7 @@ footer.submit { padding-block: 16px 40px; display: grid; gap: 10px; justify-item
     } catch (e) { sent = false; }
     status.className = "status ok";
     status.textContent = sent
-      ? "Submitted and sent to Claude. The session picks the answers up now."
+      ? "Submitted and sent to Claude. An automatic note may appear in the thread first; your answers are recorded when the session itself replies."
       : "Submitted. Tell the session \"done\" to collect the answers.";
     btn.disabled = false;
     btn.textContent = "Submit again";

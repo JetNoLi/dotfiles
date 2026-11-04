@@ -29,6 +29,7 @@ if [ "${1:-}" = start ]; then
   # pane or not. Only looked up when one exists, so most turns cost a
   # directory listing.
   state="${WB_STATE_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/wb}"
+  # shellcheck disable=SC2010 # request files are named for task stems
   if [ -n "$(ls -A "$state/clear" 2>/dev/null | grep -v '\.claimed$')" ]; then
     "$(dirname "$0")/wb" _clear-cancel ${sid:+--session-id "$sid"} >/dev/null 2>&1 || true
   fi
@@ -50,7 +51,7 @@ case "${1:-}" in
     tmux set -pu -t "$P" @claude_working 2>/dev/null || true
     s="$(tmux show -pv -t "$P" @claude_started 2>/dev/null || true)"
     if [ -n "$s" ] && [ "$(( $(date +%s) - s ))" -ge "$DONE_MIN_SECS" ]; then
-      tmux set -p -t "$P" @claude_blocked done 2>/dev/null || true
+      tmux set -p -t "$P" @claude_blocked "done" 2>/dev/null || true
     fi
     ;;
 esac
