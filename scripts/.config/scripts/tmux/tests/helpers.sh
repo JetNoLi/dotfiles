@@ -117,7 +117,8 @@ fake_bg() {
 # file plus process line) and prints what the real one prints; `attach <id>`
 # idles with that argv; `stop <id>` removes the registry entry. During a
 # stop, WB_TEST_STOP_WRITES=<file> writes into the worktree the way a
-# mid-turn agent would, and WB_TEST_STOP_FAILS=1 makes the stop fail.
+# mid-turn agent would, WB_TEST_STOP_FAILS=1 makes the stop fail, and
+# WB_TEST_STOP_GONE=1 makes it fail because the job already exited.
 # WB_TEST_BG_FAILS=1 makes `--bg` fail.
 fake_claude_bin() {
   local sid="${1:-86e34592-cdb9-4da2-bf55-6db85f3bc22e}"
@@ -138,6 +139,7 @@ case "\$1" in
   stop) [ -z "\${WB_TEST_WT:-}" ] || { [ -d "\$WB_TEST_WT" ] && echo "worktree present at stop" >> "$T/claude.log"; }
         [ -z "\${WB_TEST_STOP_WRITES:-}" ] || echo late > "\$WB_TEST_STOP_WRITES"
         [ -z "\${WB_TEST_STOP_FAILS:-}" ] || { echo "stop failed" >&2; exit 1; }
+        [ -z "\${WB_TEST_STOP_GONE:-}" ] || { rm -f "$CLAUDE_SESSIONS_DIR/515151.json"; echo "no such job" >&2; exit 1; }
         rm -f "$CLAUDE_SESSIONS_DIR/515151.json"; echo "stopped \$2" ;;
   *) # an interactive start in a pane: registers there, then exits
     [ -z "\${TMUX_PANE:-}" ] || {

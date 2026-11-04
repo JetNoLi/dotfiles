@@ -316,6 +316,8 @@ _wb_stop_bg() {
   while IFS=$'\t' read -r job sid; do
     if wb_watchdog 10 claude stop "$job" >/dev/null 2>&1 </dev/null; then
       last="$sid"
+    elif _wb_registry_reload; [ -z "${WB_REG_BY_JOB[$job]:-}" ]; then
+      last="$sid"   # it exited on its own between the listing and the stop
     else
       echo "wb: could not stop background session $job — it is still running" >&2
       failed=1

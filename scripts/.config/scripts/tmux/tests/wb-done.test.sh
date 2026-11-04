@@ -81,6 +81,13 @@ wb new --parent dotfiles--parent dotfiles child >/dev/null 2>&1
 out="$(wb done dotfiles--child 2>&1)"
 assert "closing the last open child names the parent to close" 'close it with: wb done dotfiles--parent' "$out"
 
+# --- a background job that exits on its own just before the stop ----------------------------------
+wb new --bg dotfiles gone-early >/dev/null 2>&1
+out="$(WB_TEST_STOP_GONE=1 wb done dotfiles--gone-early 2>&1)"; code=$?
+assert_eq "a job already gone counts as stopped" 0 "$code"
+assert_eq "it doesn't claim the job is still running" "" "$(grep 'still running' <<< "$out")"
+assert_eq "the task is done" done "$(wb_task_get "$TASKS_DIR/dotfiles--gone-early.md" status)"
+
 # --- a store write that fails, under || as the picker runs it -----------------------------------
 wb new dotfiles ro-store >/dev/null 2>&1
 chmod a-w "$TASKS_DIR"
