@@ -295,10 +295,13 @@ _wb_find_task() {
 # background session belonging to the task: named by its claude_sessions:,
 # or running in its worktree.
 _wb_task_bg_jobs() {
-  local wt sid job name cwd status attached ids
+  local wt sid job name cwd status attached ids line
+  local -a rec
   wt="$(wb_task_worktree_abs "$1" 2>/dev/null)" && wt="$(_wb_real_lower "$wt")"
   ids=",$(wb_task_get "$1" claude_sessions | tr ',' '\n' | sed 's/@.*//' | paste -sd, -),"
-  while IFS=$'\t' read -r sid job name cwd status attached; do
+  while IFS= read -r line; do
+    wb_tsv_split "$line" rec   # a nameless session leaves an empty field
+    sid="${rec[0]}" job="${rec[1]}" name="${rec[2]}" cwd="${rec[3]}" status="${rec[4]}" attached="${rec[5]:-}"
     if [[ "$ids" == *",$sid,"* ]] || { [ -n "$wt" ] && [ "$(_wb_real_lower "$cwd")" = "$wt" ]; }; then
       printf '%s\t%s\n' "$job" "$sid"
     fi

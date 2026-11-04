@@ -111,7 +111,9 @@ wb_bg_rows() {
   done < <(wb_task_read_all)
 
   local sid job name cwd status attached
-  while IFS=$'\t' read -r sid job name cwd status attached; do
+  while IFS= read -r line; do
+    wb_tsv_split "$line" rec   # a nameless session leaves an empty field
+    sid="${rec[0]}" job="${rec[1]}" name="${rec[2]}" cwd="${rec[3]}" status="${rec[4]}" attached="${rec[5]:-}"
     [ -z "$attached" ] || continue
     file="${by_sid[$sid]:-${by_cwd[$(_wb_real_lower "$cwd")]:-}}"
     if [ -n "$file" ]; then

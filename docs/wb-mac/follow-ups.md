@@ -6,7 +6,6 @@ Last updated 2026-11-01. Three code reviews of `feat/mac-picker-native-status` f
 
 - **Lock takeover.** The mkdir lock in `wb-lib/compat.sh` (lines 23-36) has two edge cases. Two processes can both take over a stale lock at the same moment. A lock directory left behind with no pid file is never taken over, so every write waits until it times out.
 - **`wb new --bg` starts the agent before taking the lock.** If the run fails after the start and is retried, a second background agent can start.
-- **Empty fields shift columns.** `IFS=$'\t' read` merges consecutive tabs, so an empty field moves every field after it one place left. This affects `wb-lib/rows.sh:114` and `wb-lib/lifecycle.sh:263`, and it shows up as background sessions with no name being misread.
 - **Renamed sessions are lost.** After a session is renamed, `wb_bg_attach` and `_wb_resolve` can't find it, so `wb down` and Enter on a background row fail.
 - **Non-ASCII paths miss their transcripts.** Claude turns each byte of a multibyte character into a dash, and `wb_transcript_dir` turns each character into one, so the two folder names differ.
 - **Picker `wb done` ignores its own errors.** `cmd_done` runs under `||` on the picker path, so `set -e` is off inside it. A failed task-file write still reports success.

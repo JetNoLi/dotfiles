@@ -51,6 +51,17 @@ out="$(kind_rows bg | grep otherjob)"
 assert "a bg session matching no task is its own row in its cwd's repo group" \
   $'^other\tn-434343\t\t\t'"$T/code/other"$'\tbg\totherjob\t$' "$out"
 
+# A nameless session leaves an empty field, which must not shift the cwd.
+fake_bg 454545 idle noname-sid nonamejob "$T/code/other"
+jq '.name = ""' "$CLAUDE_SESSIONS_DIR/454545.json" > "$T/nn" && mv "$T/nn" "$CLAUDE_SESSIONS_DIR/454545.json"
+assert "a nameless bg session keeps its cwd as the row's ref" \
+  $'^other\t[^\t]*\t\t\t'"$T/code/other"$'\tbg\tnonamejob\t$' "$(kind_rows bg | grep nonamejob)"
+fake_bg 464646 idle wt-noname-sid wtnoname "$WT"
+jq '.name = ""' "$CLAUDE_SESSIONS_DIR/464646.json" > "$T/nn" && mv "$T/nn" "$CLAUDE_SESSIONS_DIR/464646.json"
+assert "a nameless bg session in a task's worktree counts as the task's" \
+  $'^wtnoname\twt-noname-sid$' "$(_wb_task_bg_jobs "$task" | grep wtnoname)"
+rm -f "$CLAUDE_SESSIONS_DIR/454545.json" "$CLAUDE_SESSIONS_DIR/464646.json"
+
 # --- AE5: a session outside tmux that isn't in the background ------------------------
 registry "$$" idle "" interactive "" desk-sid "" "$T/code/other"
 assert_eq "AE5: an interactive session with no pane renders no row" "" "$(rows | grep -e n-$$ -e desk-sid)"
