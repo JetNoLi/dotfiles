@@ -89,4 +89,43 @@ out="$(echo 'Next: x' | wb new --bg --handoff dotfiles seeded 2>&1)"; code=$?
 assert_eq "--handoff onto an existing task refuses" 1 "$code"
 assert "pointing at /handoff <task> instead" 'already exists' "$out"
 
+# --- branching from origin -------------------------------------------------------------------
+make_repo "$T/upstream"
+git clone -q "$T/upstream" "$T/code/cloned"
+git -C "$T/upstream" -c user.email=t@t -c user.name=t commit -q --allow-empty -m ahead
+ahead="$(git -C "$T/upstream" rev-parse HEAD)"
+out="$(wb new cloned from-origin 2>&1)"; code=$?
+assert_eq "wb new in a clone succeeds" 0 "$code"
+assert_eq "a new branch starts from origin's default branch, freshly fetched" "$ahead" \
+  "$(git -C "$T/code/cloned/.worktrees/from-origin" rev-parse HEAD)"
+assert_eq "and doesn't track it" "" "$(git -C "$T/code/cloned" config branch.from-origin.merge)"
+
+make_repo "$T/code/lost"
+git -C "$T/code/lost" remote add origin "$T/nowhere"
+out="$(wb new lost offline 2>&1)"; code=$?
+assert_eq "an unreachable origin still makes the worktree" 0 "$code"
+assert "with a warning that it branched from local HEAD" 'branching from local HEAD' "$out"
+assert_eq "at local HEAD" "$(git -C "$T/code/lost" rev-parse HEAD)" \
+  "$(git -C "$T/code/lost/.worktrees/offline" rev-parse HEAD)"
+
+# --- wb_bootstrap ---------------------------------------------------------------------------
+B="$T/code/boot"; make_repo "$B"
+echo SECRET=1 > "$B/.env"; echo X=2 > "$B/.env.local"
+mkdir -p "$B/wt1"; wb_bootstrap "$B" "$B/wt1"
+assert_eq "without a manifest the .env files are copied" "SECRET=1 X=2" "$(cat "$B/wt1/.env" "$B/wt1/.env.local" | xargs)"
+assert_eq "as copies, not links" no "$([ -L "$B/wt1/.env" ] && echo yes || echo no)"
+
+mkdir -p "$B/node_modules/pkg" "$B/config"; echo c > "$B/config/local.yml"
+printf '# copied into each worktree
+config/local.yml  # a file
+node_modules
+missing.txt
+' > "$B/.worktree-bootstrap"
+mkdir -p "$B/wt2/config"; echo mine > "$B/wt2/config/local.yml"
+wb_bootstrap "$B" "$B/wt2"; code=$?
+assert_eq "with a manifest it succeeds, skipping a missing entry" 0 "$code"
+assert_eq "a directory entry is linked" "$B/node_modules" "$(readlink "$B/wt2/node_modules")"
+assert_eq "a file already in the worktree is kept" mine "$(cat "$B/wt2/config/local.yml")"
+assert_eq "the manifest replaces the .env default" no "$([ -e "$B/wt2/.env" ] && echo yes || echo no)"
+
 finish
