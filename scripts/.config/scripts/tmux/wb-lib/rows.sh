@@ -85,12 +85,11 @@ _wb_real_lower() {
 }
 
 # _wb_cwd_repo <dir> — the repo name a directory belongs to (a worktree
-# names its main repo).
+# names its main repo); outside git, the directory's own name.
 _wb_cwd_repo() {
-  local common
-  common="$(git -C "$1" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" || { basename "$1"; return; }
-  common="${common%/.git}"
-  basename "$common"
+  local main
+  main="$(_wb_main_repo "$1")" || { basename "$1"; return; }
+  basename "$main"
 }
 
 # wb_bg_rows — one row per background session not attached in a pane (an
@@ -123,7 +122,7 @@ wb_bg_rows() {
       repo="$(_wb_cwd_repo "$cwd")"; branch="$(git -C "$cwd" branch --show-current 2>/dev/null || true)"
       title="$name"; ref="$cwd"
     fi
-    rank="$(wb_status_rank "$status")"
+    wb_status_rank "$status"; rank="$REPLY"
     IFS=$'\t' read -r icon label < <(wb_status_icon "$status")
     printf '%s\t%s\t[%s]\t%s\t%s %s\t\t\t%s\tbg\t1\t%s\t\t0\n' \
       "$repo" "${title:-$name}" "$branch" "$rank" "$icon" "$label" "$ref" "$job"
@@ -431,10 +430,10 @@ wb_format_for_display() {
         if (dorm) {
           w = lbl; sub(/ .*/, "", w)
           c = (w == "doing") ? ye : (w == "review") ? cy : dim
-        } else if (lbl == "needs you") c = mg
-        else if (lbl == "finished")   c = cy
-        else if (lbl == "working")    c = ye
-        else                          c = dim
+        } else if ($4 == "0") c = mg   # by status rank (wb_status_rank), not label text
+        else if ($4 == "1")   c = cy
+        else if ($4 == "2")   c = ye
+        else                  c = dim
         nest = $(12); lvl = 0
         if (nest ~ /^[ac][0-9]+$/) lvl = substr(nest, 2) + 0
         ind = ""; for (k = 1; k < lvl; k++) ind = ind "  "

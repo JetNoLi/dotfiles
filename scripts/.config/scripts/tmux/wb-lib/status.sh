@@ -111,8 +111,10 @@ _wb_map_status() {
   esac
 }
 
+# wb_status_rank <status> — its sort rank in REPLY, most urgent first. Set
+# in REPLY, not printed, so the per-pane loop calls it without a subshell.
 wb_status_rank() {
-  case "$1" in needs-input) echo 0 ;; done) echo 1 ;; working) echo 2 ;; *) echo 3 ;; esac
+  case "$1" in needs-input) REPLY=0 ;; done) REPLY=1 ;; working) REPLY=2 ;; *) REPLY=3 ;; esac
 }
 
 # --- pane-scrape fallback ------------------------------------------------------------
@@ -205,7 +207,7 @@ _wb_claude_panes_all() {
     esac
     # An open /decide surface needs Jet until it's answered (KTD7).
     [ "$status" = working ] || [ ! -e "$WB_STATE_DIR/needs-you/$sess" ] || status=needs-input
-    case "$status" in needs-input) rank=0 ;; done) rank=1 ;; working) rank=2 ;; *) rank=3 ;; esac
+    wb_status_rank "$status"; rank="$REPLY"
     task="${title#* }"; [ "$task" != "$title" ] && [ -n "$task" ] || task="Claude Code"
     printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$rank" "$target" "$status" "$task" "$pane" "$sid"
   done < <(tmux list-panes -a -F \

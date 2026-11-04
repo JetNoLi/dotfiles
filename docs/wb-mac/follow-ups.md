@@ -17,12 +17,6 @@ The first real run of `/decide` was from a session that isn't a wb task.
 - The skill makes the page under `$WB_STATE_DIR/decide/`, but the Artifact tool only publishes from the working directory or the session scratchpad, so the files had to be copied first. Section 4 of the skill should make them in one of those.
 - The comment watch's auto-reply said the answers were being recorded before anything was. The skill already warns about it; the wording on the page could too.
 
-## Tidy-ups
-
-- Row colours are chosen by matching label text. They should key off the status value instead.
-- `status.sh` repeats `wb_status_rank` inline.
-- `_wb_cwd_repo` and `_wb_main_repo` repeat each other.
-
 ## Test gaps
 
 - Context card states other than idle.
