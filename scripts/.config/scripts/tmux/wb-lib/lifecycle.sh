@@ -148,8 +148,8 @@ _wb_open_task() {
 # _wb_registry_sid_for_job <job> — the full session id the registry records
 # for a short job id, waiting up to ~3s for the file to appear.
 _wb_registry_sid_for_job() {
-  local f sid tries
-  for tries in $(seq 30); do
+  local f sid
+  for _ in $(seq 30); do
     for f in "$CLAUDE_SESSIONS_DIR"/*.json; do
       [ -f "$f" ] || continue
       sid="$(jq -r --arg j "$1" 'select(.jobId == $j or ((.sessionId // "") | startswith($j))) | .sessionId' "$f" 2>/dev/null)"
@@ -308,13 +308,13 @@ _wb_find_task() {
 # background session belonging to the task: named by its claude_sessions:,
 # or running in its worktree.
 _wb_task_bg_jobs() {
-  local wt sid job name cwd status attached ids line
+  local wt sid job cwd ids line
   local -a rec
   wt="$(wb_task_worktree_abs "$1" 2>/dev/null)" && wt="$(_wb_real_lower "$wt")"
   ids=",$(wb_task_get "$1" claude_sessions | tr ',' '\n' | sed 's/@.*//' | paste -sd, -),"
   while IFS= read -r line; do
     wb_tsv_split "$line" rec   # a nameless session leaves an empty field
-    sid="${rec[0]}" job="${rec[1]}" name="${rec[2]}" cwd="${rec[3]}" status="${rec[4]}" attached="${rec[5]:-}"
+    sid="${rec[0]}" job="${rec[1]}" cwd="${rec[3]}"
     if [[ "$ids" == *",$sid,"* ]] || { [ -n "$wt" ] && [ "$(_wb_real_lower "$cwd")" = "$wt" ]; }; then
       printf '%s\t%s\n' "$job" "$sid"
     fi
@@ -463,12 +463,12 @@ _wb_family_close_target() {
   local -A seen=()
   while [ -n "$stem" ] && [ "$depth" -lt 20 ] && [ -z "${seen[$stem]:-}" ] \
       && wb_task_exists "$(wb_task_file_for_stem "$stem")"; do
-    if [ "$(wb_task_get "$(wb_task_file_for_stem "$stem")" status)" != done ]; then
+    if [ "$(wb_task_get "$(wb_task_file_for_stem "$stem")" status)" != "done" ]; then
       found=0
       while IFS= read -r s; do
         [ "$s" != "$stem" ] || continue
         found=1
-        [ "$(wb_task_get "$(wb_task_file_for_stem "$s")" status)" = done ] || return 0
+        [ "$(wb_task_get "$(wb_task_file_for_stem "$s")" status)" = "done" ] || return 0
       done < <(wb_family_tree "$stem")
       [ "$found" = 1 ] && echo "$stem"
       return 0
@@ -490,7 +490,7 @@ cmd_done() {
     case "$1" in --close) close=1 ;; *) arg="$1" ;; esac
     shift
   done
-  _wb_resolve done "$arg" || return 1
+  _wb_resolve "done" "$arg" || return 1
   local file="$WB_TASK" session="$WB_SESSION"
   wt="$(wb_task_worktree_abs "$file" 2>/dev/null)" || wt=""
   repo_dir="$(wb_task_repo_path "$file" 2>/dev/null)" || repo_dir=""
@@ -521,7 +521,7 @@ cmd_done() {
 
   # Each write is checked: the picker runs this under ||, where set -e is off.
   wb_lock_acquire "$file" || return 75
-  if ! { wb_task_set "$file" status done \
+  if ! { wb_task_set "$file" status "done" \
       && wb_task_set "$file" closed "$(date +%F)" \
       && wb_task_set "$file" claude_sessions "" \
       && wb_task_append_handoff "$file" "wb done" "$note."; }; then

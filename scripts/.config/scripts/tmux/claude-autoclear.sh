@@ -22,6 +22,7 @@ set -uo pipefail
 WB_CLEAR_PROMPT="${WB_CLEAR_PROMPT:-Pick up this task from its /handoff checkpoint.}"
 
 state="${WB_STATE_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/wb}"
+# shellcheck disable=SC2010 # request files are named for task stems
 case "${1:-}" in
   stop) [ -n "$(ls -A "$state/clear" 2>/dev/null | grep -v '\.claimed$')" ] || exit 0 ;;
   helper) ;;
@@ -117,7 +118,7 @@ stop_hook() {
 }
 
 helper() {
-  local claimed="$1" perm="$2" bin="$3" stem file pane sid created i working idx status wt job name att
+  local claimed="$1" perm="$2" bin="$3" stem file pane sid created working idx status wt job name att
   stem="$(basename "$claimed" .claimed)"
   file="$(wb_task_file_for_stem "$stem")"
   pane="$(_ac_field "$claimed" lookup_pane)"; sid="$(_ac_field "$claimed" lookup_sid)"
@@ -127,7 +128,7 @@ helper() {
 
   # Settle: the notify hook's `done` runs alongside this one and the registry
   # turns idle just after Stop; a prompt Jet sends now makes it busy again.
-  for i in $(seq 20); do
+  for _ in $(seq 20); do
     working=""
     [ -z "$pane" ] || working="$(tmux show -pv -t "$pane" @claude_working 2>/dev/null)"
     _wb_registry_reload; idx="${WB_REG_BY_SID[$sid]:-}"
@@ -179,8 +180,8 @@ helper() {
 # _ac_record_primary <file> <pane> <old_sid> — once the new Claude registers
 # in the pane, make it the record's @primary, as a respawn by hand would.
 _ac_record_primary() {
-  local i idx new
-  for i in $(seq 40); do
+  local idx new
+  for _ in $(seq 40); do
     _wb_registry_reload
     idx="${WB_REG_BY_PANE[$2]:-}"
     if [ -n "$idx" ]; then

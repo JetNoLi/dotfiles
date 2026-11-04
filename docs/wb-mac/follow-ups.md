@@ -36,5 +36,4 @@ The first real run of `/decide` was from a session that isn't a wb task.
 
 ## Tooling gaps
 
-- shellcheck isn't installed on the Mac, so `bash -n` is the only lint that has run.
 - No second AI model has reviewed this code. No cross-model reviewer is installed, and Node 18 is older than the version acpx needs.

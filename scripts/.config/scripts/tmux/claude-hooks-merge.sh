@@ -6,6 +6,7 @@
 set -euo pipefail
 
 settings="${1:-$HOME/.claude/settings.json}"
+# shellcheck disable=SC2088 # kept literal: Claude Code expands it in settings.json
 dir='~/.config/scripts/tmux'
 
 mkdir -p "$(dirname "$settings")"

@@ -81,7 +81,8 @@ until_reset() { # <epoch>
 }
 usage_part() { # <label> <pct> <resets_at>
   [[ "$2" =~ ^[0-9]+$ ]] || return 0
-  local p="$1 $2%" c="${dim}$1${reset} $(traffic "$2")$2%${reset}" when=""
+  local p="$1 $2%" c when=""
+  c="${dim}$1${reset} $(traffic "$2")$2%${reset}"
   [[ "$3" =~ ^[0-9]+$ ]] && when="$(until_reset "$3")"
   if [ -n "$when" ]; then
     p="$p ↻$when"
