@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# claude-hooks-merge.sh [settings.json] — add wb's hook entries to Claude
-# Code's settings if they're missing, leaving every other setting as it is
-# (KTD7). Stowing settings.json instead would replace the whole file. An
+# claude-hooks-merge.sh [settings.json] — add wb's hook entries, and its
+# statusLine when none is set, to Claude Code's settings, leaving every
+# other setting as it is (KTD7). Stowing settings.json instead would replace the whole file. An
 # entry is matched on its command string.
 set -euo pipefail
 
@@ -21,5 +21,6 @@ jq --arg dir "$dir" '
   | add("Stop"; $dir + "/claude-notify-hook.sh done")
   | add("Stop"; $dir + "/claude-autoclear.sh stop")
   | add("SessionStart"; $dir + "/claude-pickup-hook.sh")
+  | .statusLine //= {type: "command", command: ($dir + "/claude-statusline.sh")}
 ' "$settings" > "$settings.tmp.$$"
 mv "$settings.tmp.$$" "$settings"
