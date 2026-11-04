@@ -75,4 +75,11 @@ echo '{"statusLine":{"type":"command","command":"my-own.sh"}}' > "$s"
 "$BASH" "$MERGE" "$s"
 assert_eq "a statusLine already set is left alone" my-own.sh "$(jq -r .statusLine.command "$s")"
 
+printf '{"theme": "dark",\n' > "$s"; before="$(cat "$s")"
+out="$("$BASH" "$MERGE" "$s" 2>&1)"; code=$?
+assert_eq "settings that aren't valid JSON make the merge fail" 1 "$code"
+assert "and it says so" "isn't valid JSON" "$out"
+assert_eq "the file is left as it was" "$before" "$(cat "$s")"
+assert_eq "and no temp file is left behind" "" "$(ls "$T" | grep 'settings.json.tmp')"
+
 finish
