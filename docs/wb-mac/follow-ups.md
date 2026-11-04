@@ -1,9 +1,6 @@
 # Mac wb follow-ups
 
-Last updated 2026-11-01. Three code reviews of `feat/mac-picker-native-status` found these items. None of them blocked the branch, and none is fixed yet. When one is fixed, delete it from this page.
-
-## Bugs and races
-
+Last updated 2026-11-04. Three code reviews of `feat/mac-picker-native-status` found these items. None of them blocked the branch. Its bugs and races were fixed on 2026-11-04. When an item is fixed, delete it from this page.
 
 ## Fragile assumptions
 
@@ -41,7 +38,3 @@ The first real run of `/decide` was from a session that isn't a wb task.
 
 - shellcheck isn't installed on the Mac, so `bash -n` is the only lint that has run.
 - No second AI model has reviewed this code. No cross-model reviewer is installed, and Node 18 is older than the version acpx needs.
-
-## Housekeeping
-
-- `gh` isn't authenticated, so `wb down` never moves a task to review. The check stays in place.
