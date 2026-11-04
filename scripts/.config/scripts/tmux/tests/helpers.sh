@@ -62,6 +62,16 @@ assert_eq() { # <desc> <expected> <actual>
 }
 finish() { exit "$fail"; }
 
+# wait_until <seconds> <command...> — poll every 0.1s until the command
+# succeeds, rather than sleeping a fixed time; fails after <seconds>.
+wait_until() {
+  local n=$(( $1 * 10 )); shift
+  until "$@" 2>/dev/null; do
+    n=$(( n - 1 )); [ "$n" -gt 0 ] || return 1
+    sleep 0.1
+  done
+}
+
 # make_repo <path> — a git repo with one commit.
 make_repo() {
   mkdir -p "$1"

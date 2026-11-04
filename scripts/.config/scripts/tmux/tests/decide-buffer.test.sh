@@ -23,7 +23,7 @@ echo "Q1: yes or no?" > "$ans"
 
 TMUX_PANE="$P" WB_TEST_NVIM_SECS=2 wb decide-buffer "$ans" > "$T/out" 2>&1 &
 waiter=$!
-sleep 1
+wait_until 5 test -s "$NY"
 assert_eq "it opens a split in the task's session" 2 "$(tmux list-panes -t "=proj--dec:" | wc -l | tr -d ' ')"
 split="$(tmux list-panes -t "=proj--dec:" -F '#{pane_id}' | grep -vxF "$P")"
 assert_eq "and marks the task as needing Jet, with the split's pane" "buffer $ans $split" "$(cat "$NY" 2>/dev/null)"

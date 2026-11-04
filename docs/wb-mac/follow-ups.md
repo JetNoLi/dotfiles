@@ -19,7 +19,6 @@ The first real run of `/decide` was from a session that isn't a wb task.
 
 ## Test gaps
 
-- Some tests rely on short sleeps and could be flaky.
 
 ## Tooling gaps
 
