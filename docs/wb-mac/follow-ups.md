@@ -19,8 +19,6 @@ The first real run of `/decide` was from a session that isn't a wb task.
 
 ## Test gaps
 
-- Picker `ctrl-x` run against your own session.
-- Picker opening with one row. This was checked by hand only, because it is an interactive fzf flag.
 - Some tests rely on short sleeps and could be flaky.
 
 ## Tooling gaps
