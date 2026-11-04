@@ -43,7 +43,7 @@ local config = {
 				-- Rename the variable under your cursor.
 				--  Most Language Servers support renaming across files, etc.
 				map("grn", vim.lsp.buf.rename, "[R]e[n]ame")
-				vim.keymap.set("n", "<leader>rs", vim.lsp.buf.rename, { buffer = bufnr, desc = "LSP: Rename symbol" })
+				vim.keymap.set("n", "<leader>rs", vim.lsp.buf.rename, { buffer = event.buf, desc = "LSP: Rename symbol" })
 				-- Execute a code action, usually your cursor needs to be on top of an error
 				-- or a suggestion from your LSP for this to activate.
 				map("gra", vim.lsp.buf.code_action, "[G]oto Code [A]ction", { "n", "x" })
@@ -242,19 +242,19 @@ local config = {
 		})
 		require("mason-tool-installer").setup({ ensure_installed = ensure_installed })
 
+		-- mason-lspconfig v2 dropped `handlers`: it enables each installed server
+		-- with vim.lsp.enable, which picks up what vim.lsp.config registered here.
+		-- This handles overriding only values explicitly passed by the server
+		-- configuration above. Useful when disabling certain features of an LSP
+		-- (for example, turning off formatting for ts_ls)
+		for server_name, server in pairs(servers) do
+			server.capabilities = vim.tbl_deep_extend("force", {}, capabilities, server.capabilities or {})
+			vim.lsp.config(server_name, server)
+		end
+
 		require("mason-lspconfig").setup({
 			ensure_installed = {}, -- explicitly set to an empty table (Kickstart populates installs via mason-tool-installer)
 			automatic_installation = false,
-			handlers = {
-				function(server_name)
-					local server = servers[server_name] or {}
-					-- This handles overriding only values explicitly passed
-					-- by the server configuration above. Useful when disabling
-					-- certain features of an LSP (for example, turning off formatting for ts_ls)
-					server.capabilities = vim.tbl_deep_extend("force", {}, capabilities, server.capabilities or {})
-					require("lspconfig")[server_name].setup(server)
-				end,
-			},
 		})
 	end,
 }
