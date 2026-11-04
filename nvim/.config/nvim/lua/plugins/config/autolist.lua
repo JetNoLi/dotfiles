@@ -1,22 +1,40 @@
+local filetypes = { "markdown", "text", "tex", "plaintex", "norg" }
+
+-- Buffer-local, so they're set on every list buffer, not just the first one.
+local function set_keymaps(buf)
+	local opts = { buffer = buf }
+
+	-- Tab to indent, Shift-Tab to dedent
+	vim.keymap.set("i", "<Tab>", "<cmd>AutolistTab<CR>", opts)
+	vim.keymap.set("i", "<S-Tab>", "<cmd>AutolistShiftTab<CR>", opts)
+
+	-- <CR> in insert: continue list, or remove empty bullet
+	vim.keymap.set("i", "<CR>", "<CR><cmd>AutolistNewBullet<CR>", opts)
+
+	-- In normal mode: `o`/`O` continue lists, `<CR>` toggles checkbox then newline
+	vim.keymap.set("n", "o", "o<cmd>AutolistNewBullet<CR>", opts)
+	vim.keymap.set("n", "O", "O<cmd>AutolistNewBulletBefore<CR>", opts)
+	vim.keymap.set("n", "<CR>", "<cmd>AutolistToggleCheckbox<CR><CR>", opts)
+end
+
 return {
 	"gaoDean/autolist.nvim",
-	-- lazy-load when opening or creating text-like files
-	event = { "BufReadPre", "BufNewFile" },
-	ft = { "markdown", "text", "tex", "plaintex", "norg" },
+	ft = filetypes,
 	config = function()
-		-- use all the defaults, plus sensible keymaps:
 		require("autolist").setup()
 
-		-- Tab to indent (AutolistTab), Shift-Tab to dedent (AutolistShiftTab) :contentReference[oaicite:0]{index=0}
-		vim.keymap.set("i", "<Tab>", "<cmd>AutolistTab<CR>", { buffer = true })
-		vim.keymap.set("i", "<S-Tab>", "<cmd>AutolistShiftTab<CR>", { buffer = true })
+		vim.api.nvim_create_autocmd("FileType", {
+			pattern = filetypes,
+			callback = function(args)
+				set_keymaps(args.buf)
+			end,
+		})
 
-		-- <CR> in insert: continue list, or remove empty bullet :contentReference[oaicite:1]{index=1}
-		vim.keymap.set("i", "<CR>", "<CR><cmd>AutolistNewBullet<CR>", { buffer = true })
-
-		-- In normal mode: `o`/`O` continue lists, `<CR>` toggles checkbox then newline :contentReference[oaicite:2]{index=2}
-		vim.keymap.set("n", "o", "o<cmd>AutolistNewBullet<CR>", { buffer = true })
-		vim.keymap.set("n", "O", "O<cmd>AutolistNewBulletBefore<CR>", { buffer = true })
-		vim.keymap.set("n", "<CR>", "<cmd>AutolistToggleCheckbox<CR><CR>", { buffer = true })
+		-- The buffer that triggered the lazy load already had its FileType event.
+		for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+			if vim.api.nvim_buf_is_loaded(buf) and vim.tbl_contains(filetypes, vim.bo[buf].filetype) then
+				set_keymaps(buf)
+			end
+		end
 	end,
 }
