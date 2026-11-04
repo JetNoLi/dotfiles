@@ -22,13 +22,13 @@ Rule: an alternative doesn't count as tested until it has a verdict in `docs/wb-
 
 ## Next goal
 
-Set 2026-11-04, once PR #2 is open:
+Set 2026-11-04, once PR #2 is open. Progress as of 2026-11-04:
 
-1. Work through the open items in `docs/wb-mac/follow-ups.md`.
-2. Set up GitHub across the personal repos. `gh` is now logged in on the Mac with a PAT.
-3. Delete the old throwaway claude.ai pages: the two wake-up tests and the review's /decide page.
-4. Check TypeScript in nvim: `ts_ls` attaches and `K` hover works.
-5. A Claude Code status line on the Mac matching the work repo's. At a minimum it shows context used, the weekly and 5-hour usage limits, and the worktree and wb task of the session.
+1. Work through the open items in `docs/wb-mac/follow-ups.md`. **Done** (PRs #6 and #7). What's left there is assumptions to watch and the cross-model reviewer, which needs a newer Node.
+2. Set up GitHub across the personal repos. `gh` is now logged in on the Mac with a PAT. **Open.**
+3. Delete the old throwaway claude.ai pages: the two wake-up tests and the review's /decide page. **Done.**
+4. Check TypeScript in nvim: `ts_ls` attaches and `K` hover works. **Done** (PR #4, which also applies the LSP server configs that mason-lspconfig v2 had stopped applying).
+5. A Claude Code status line on the Mac matching the work repo's. At a minimum it shows context used, the weekly and 5-hour usage limits, and the worktree and wb task of the session. **Done** (PR #5).
 
 ## Pieces
 

@@ -1,6 +1,6 @@
 # Mac wb follow-ups
 
-Last updated 2026-11-04. Three code reviews of `feat/mac-picker-native-status` found these items. None of them blocked the branch. Its bugs and races were fixed on 2026-11-04. When an item is fixed, delete it from this page.
+Last updated 2026-11-04. Three code reviews of `feat/mac-picker-native-status` found the items this page tracked. The bugs, tidy-ups, test gaps and /decide gaps were all fixed on 2026-11-04. What's left are assumptions to watch when Claude Code updates, and one tooling gap. When an item is fixed, delete it from this page.
 
 ## Fragile assumptions
 
