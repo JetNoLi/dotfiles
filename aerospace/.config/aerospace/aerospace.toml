@@ -1,3 +1,9 @@
+config-version = 2
+
+# The eight workspaces, as on the work machine: 1-4 on the laptop, A/S/D/F
+# on the external monitor (see workspace-to-monitor-force-assignment).
+persistent-workspaces = ['1', '2', '3', '4', 'A', 'S', 'D', 'F']
+
 # Place a copy of this config to ~/.aerospace.toml
 # After that, you can edit ~/.aerospace.toml to your liking
 
@@ -101,11 +107,28 @@ automatically-unhide-macos-hidden-apps = false
     alt-slash = 'layout tiles horizontal vertical'
     alt-comma = 'layout accordion horizontal vertical'
 
+    # Layout extras on Option+Cmd, where the work machine has Super+Alt:
+    # float, split toggle, stacked and tabbed. Stacked and tabbed toggle back
+    # to tiles on a second press.
+    alt-cmd-c = 'layout floating tiling'
+    alt-cmd-g = 'layout horizontal vertical'
+    alt-cmd-s = 'layout v_accordion tiles'
+    alt-cmd-t = 'layout h_accordion tiles'
+
+    # Close the window (Shift+Alt+X on the work machine).
+    alt-shift-x = 'close'
+
     # See: https://nikitabobko.github.io/AeroSpace/commands#focus
     alt-h = 'focus left'
     alt-j = 'focus down'
     alt-k = 'focus up'
     alt-l = 'focus right'
+
+    # Swap with the neighbour (Super+Ctrl+hjkl on the work machine).
+    alt-ctrl-h = 'swap left'
+    alt-ctrl-j = 'swap down'
+    alt-ctrl-k = 'swap up'
+    alt-ctrl-l = 'swap right'
 
     # See: https://nikitabobko.github.io/AeroSpace/commands#move
     alt-shift-h = 'move left'
@@ -121,6 +144,7 @@ automatically-unhide-macos-hidden-apps = false
     alt-1 = 'workspace 1'
     alt-2 = 'workspace 2'
     alt-3 = 'workspace 3'
+    alt-4 = 'workspace 4'
     alt-a = 'workspace A' # In your config, you can drop workspace bindings that you don't need
     alt-d = 'workspace D'
     alt-f = 'workspace F'
@@ -129,6 +153,7 @@ automatically-unhide-macos-hidden-apps = false
     alt-shift-1 = 'move-node-to-workspace 1'
     alt-shift-2 = 'move-node-to-workspace 2'
     alt-shift-3 = 'move-node-to-workspace 3'
+    alt-shift-4 = 'move-node-to-workspace 4'
     alt-shift-a = 'move-node-to-workspace A'
     alt-shift-d = 'move-node-to-workspace D'
     alt-shift-f = 'move-node-to-workspace F'
@@ -141,17 +166,18 @@ automatically-unhide-macos-hidden-apps = false
     # See: https://nikitabobko.github.io/AeroSpace/commands#mode
     alt-shift-semicolon = 'mode service'
 
-    # Application Bindings
+    # Application Bindings: the same letters as the work machine's Super keys
+    # (Run or Raise there); p and u are Mac-only.
     alt-i = 'exec-and-forget open -a "Ghostty"'
-    alt-t = 'exec-and-forget open -a "Microsoft Teams"'
     alt-b = 'exec-and-forget open -a "Google Chrome"'
-    alt-c = 'exec-and-forget open -a "Slack"'
-    alt-r = 'exec-and-forget open -a "Roam"'
-    alt-p = 'exec-and-forget open -a "Postman"'
-    alt-m = 'exec-and-forget open -a "Studio 3T"'
-    alt-e = 'exec-and-forget open -a "Mail"'
-    alt-n = 'exec-and-forget open -a "Notion"'
     alt-v = 'exec-and-forget open -a "Visual Studio Code"'
+    alt-c = 'exec-and-forget open -a "Slack"'
+    alt-t = 'exec-and-forget open -a "Microsoft Teams"'
+    alt-q = 'exec-and-forget open -a "Claude"'
+    alt-y = 'exec-and-forget open -a "Spotify"'
+    alt-e = 'exec-and-forget open -a "Finder"'
+    alt-o = 'exec-and-forget open -a "Mail"'
+    alt-p = 'exec-and-forget open -a "Postman"'
     alt-u = 'exec-and-forget open -a "Figma"'
 
 
@@ -159,6 +185,7 @@ automatically-unhide-macos-hidden-apps = false
     1 = 'main'
     2 = 'main'
     3 = 'main'
+    4 = 'main'
     A = 'secondary'
     S = 'secondary'
     D = 'secondary'

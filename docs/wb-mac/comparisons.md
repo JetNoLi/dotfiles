@@ -114,6 +114,30 @@ Plan: `docs/plans/2026-10-30-1353-feat-wb-handoff-and-decide-plan.md`.
 
 **Verdict:** open.
 
+## 11. Window management: AeroSpace on the Mac, Forge and Run or Raise at work
+
+**What matches (synced 2026-11-04).** The Mac's Option key plays the part of the work machine's Super key, and sits in the same physical spot. With it, the two machines share these keys:
+- **App letters:** `i` Ghostty, `b` browser, `v` VS Code, `c` Slack, `t` Teams, `q` Claude, `y` Spotify, `e` files, `o` email. The Mac also has `p` Postman and `u` Figma, which are free at work.
+- **Focus, move and swap:** `hjkl` focuses, `Shift+hjkl` moves and `Ctrl+hjkl` swaps.
+- **Workspaces:** eight, on `1 2 3 4 A S D F`, with `Shift` sending the window there.
+- **Close:** `Shift+X`.
+- **Layout extras:** float, split toggle, stacked and tabbed on `C G S T`, with Option+Cmd on the Mac and Super+Alt at work.
+
+On both machines, `ctrl+hjkl` stays with tmux and nvim.
+
+**What differs, kept on purpose.**
+- **Workspaces per monitor.** On the Mac, 1–4 stay on the laptop screen and A/S/D/F on the external, so a key switches one screen. At work, every workspace spans both monitors and a key switches both. GNOME can't do separate sets per monitor, and the work plan names that as a limitation.
+- **Option+Tab** jumps back to the last workspace. At work, Super+Tab is still GNOME's app switcher, so the same chord does different things. Of all the differences, this one is the likeliest to trip you up.
+- **Option+Shift+Tab** moves the whole workspace to the other monitor. GNOME has nothing like it, because its workspaces already span both screens.
+- **Resize** is on Option+- and Option+= on the Mac. At work it is on Forge's default keys, which this setup leaves alone.
+- **Service mode** (Option+Shift+;) is a one-key layer. Esc reloads the config, R resets the layout, F floats, Backspace closes every other window, Option+Shift+hjkl nests the window together with its neighbour, and up/down change the volume. Work has no key layers. Its nearest equivalent is Forge's split keys (Super+Alt+Z/V).
+- **App keys open or focus the app** (`open -a`). At work, Run or Raise also cycles through the app's windows when pressed again.
+- **No focus border** on the Mac. Work draws a thin grey one.
+
+**What to watch.** Whether Option+Tab's different meaning causes mistakes, and whether resize or back-and-forth are worth adding at work.
+
+**Verdict:** open.
+
 ## Work-skill behaviours and where they went (R23)
 
 Every behaviour of the six work skills is either covered by the plan's R1–R22 or left out on purpose:
