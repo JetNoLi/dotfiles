@@ -19,7 +19,6 @@ The first real run of `/decide` was from a session that isn't a wb task.
 
 ## Test gaps
 
-- Context card states other than idle.
 - `wb new` branching from `origin`.
 - `wb_bootstrap`.
 - `claude-hooks-merge.sh` given malformed JSON.
