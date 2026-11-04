@@ -171,12 +171,15 @@ cmd_clear_request() {
 }
 
 # cmd_clear_cancel [--session-id …] — drop an unclaimed request; Jet sent a
-# prompt, so the turn that asked for it is over.
+# prompt, so the turn that asked for it is over. A prompt in another Claude
+# session on the same task leaves it: that isn't the turn that asked.
 cmd_clear_cancel() {
-  local stem
+  local stem asked
   _wb_entry_task clear-cancel "$@" 2>/dev/null || return 0
   stem="$(wb_task_stem "$WB_TASK")"
   [ -f "$(wb_clear_marker "$stem")" ] || return 0
+  asked="$(sed -n 's/^sid=//p' "$(wb_clear_marker "$stem")")"
+  [ -z "$asked" ] || [ -z "${WB_LOOKUP_SID:-}" ] || [ "$asked" = "$WB_LOOKUP_SID" ] || return 0
   rm -f "$(wb_clear_marker "$stem")" "$(wb_pickup_marker "$stem")"
   wb_handoff_log "$stem" "cancelled: a prompt was sent before the turn ended"
 }

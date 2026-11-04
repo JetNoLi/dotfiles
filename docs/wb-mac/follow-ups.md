@@ -4,7 +4,6 @@ Last updated 2026-11-01. Three code reviews of `feat/mac-picker-native-status` f
 
 ## Bugs and races
 
-- **One task's sessions cancel each other's clear.** A prompt in a second Claude session mapped to the same task runs `_clear-cancel` and drops the first session's pending /handoff clear. It fails safe: no restart, and the checkpoint stays.
 
 ## Fragile assumptions
 
