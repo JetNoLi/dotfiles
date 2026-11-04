@@ -44,4 +44,19 @@ assert_eq "the second Enter starts no second attach" 1 "$(grep -c attach "$T/cla
 assert "it jumps to the attached pane" 'dotfiles--bg-task' "$(cat "$T/focus.log")"
 assert_eq "and opens no new window" "$windows" "$(tmux list-windows -t =dotfiles--bg-task: -F '#{window_name}' | xargs)"
 
+# --- a session Jet renamed ---------------------------------------------------------------------
+tmux kill-session -t =dotfiles--bg-task
+tmux new-session -d -s dotfiles--bg-task -c "$T" "sleep 300"
+tmux set -t =dotfiles--bg-task: @task "$btask"
+tmux rename-session -t =dotfiles--bg-task mine
+: > "$T/focus.log"; : > "$T/claude.log"
+wb_bg_attach 86e34592 "$btask"
+sleep 0.5
+assert "Enter on a bg row attaches in the renamed session" '^attach 86e34592$' "$(cat "$T/claude.log")"
+assert "and goes there" '^.*mine' "$(cat "$T/focus.log")"
+assert_eq "it opens no stray bg- window elsewhere" "" "$(tmux list-windows -a -F '#{window_name}' | grep '^bg-')"
+wb resume dotfiles--bg-task >/dev/null 2>&1
+assert_eq "wb resume reuses the renamed session instead of making a second one" "" \
+  "$(tmux list-sessions -F '#S' | grep -x dotfiles--bg-task)"
+
 finish

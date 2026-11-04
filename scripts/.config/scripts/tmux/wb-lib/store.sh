@@ -269,6 +269,20 @@ wb_session_task_file() {
   wb_task_file "$repo" "$(wb_sanitize "$slug")"
 }
 
+# wb_task_session <task_file> — the live tmux session working on the task:
+# the one named for its stem, else one whose record is the task. A session
+# Jet renamed keeps its @task, so it is still found.
+wb_task_session() {
+  local stem s f
+  stem="$(wb_task_stem "$1")"
+  if tmux has-session -t "=$stem" 2>/dev/null; then echo "$stem"; return 0; fi
+  while IFS= read -r s; do
+    f="$(wb_session_task_file "$s" 2>/dev/null)" || continue
+    [ "$(basename -- "$f")" = "$(basename -- "$1")" ] && { echo "$s"; return 0; }
+  done < <(tmux list-sessions -F '#S' 2>/dev/null)
+  return 1
+}
+
 # --- families -----------------------------------------------------------------
 
 # wb_family_tree <stem> — the stem, then each descendant depth-first, once.

@@ -112,7 +112,6 @@ _wb_open_task() {
     case "$preset" in .worktrees/?*) wt_slug="${preset#.worktrees/}" ;; esac
   fi
   wt_rel=".worktrees/$wt_slug"; wt="$repo_dir/$wt_rel"
-  WB_SESSION="$repo--$(wb_sanitize "$wt_slug")"
 
   [ -d "$wt" ] || _wb_add_worktree "$repo_dir" "$branch" "$wt" || return 1
   wb_bootstrap "$repo_dir" "$wt" || echo "wb new: warning: bootstrap into $wt failed (continuing)" >&2
@@ -128,6 +127,8 @@ _wb_open_task() {
   [ -n "$(wb_task_get "$file" repo_path)" ] || wb_task_set "$file" repo_path "$repo_dir"
   wb_lock_release "$file"
 
+  # A session Jet renamed is reused rather than a second one made.
+  WB_SESSION="$(wb_task_session "$file")" || WB_SESSION="$repo--$(wb_sanitize "$wt_slug")"
   tmux has-session -t "=$WB_SESSION" 2>/dev/null || is_new=1
   tmux_ensure_session "$WB_SESSION" "$wt"
   tmux set-option -t "=$WB_SESSION:" @wb_repo "$repo" >/dev/null
@@ -360,8 +361,7 @@ wb_bg_attach() {
   target="$(_wb_bg_attached_pane "$job")" && { tmux_goto_pane "$target"; return 0; }
 
   if wb_task_exists "$ref"; then
-    session="$(wb_task_stem "$ref")"
-    if tmux has-session -t "=$session" 2>/dev/null; then
+    if session="$(wb_task_session "$ref")"; then
       tmux list-windows -t "=$session:" -F '#{window_name}' | grep -qx agent \
         || tmux new-window -d -t "=$session:" -n agent -c "$(wb_task_worktree_abs "$ref")"
       tmux send-keys -t "=$session:agent" "claude attach $job" Enter
@@ -393,7 +393,7 @@ _wb_resolve() {
   else
     WB_TASK="$(wb_task_file_for_stem "$arg")"
     wb_task_exists "$WB_TASK" || { echo "wb $verb: '$arg' is no live session and no task" >&2; return 1; }
-    tmux has-session -t "=$arg" 2>/dev/null && WB_SESSION="$arg"
+    WB_SESSION="$(wb_task_session "$WB_TASK")" || WB_SESSION=""
   fi
   return 0
 }
