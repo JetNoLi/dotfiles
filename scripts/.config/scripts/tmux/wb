@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+# wb — the Mac picker over Claude agents and tasks, plus the task lifecycle.
+# Carved out of the work repo's wb.sh; see docs/wb-mac/comparisons.md for
+# where it deliberately differs.
+#
+#   wb                     open the picker
+#   wb new [--bg [--handoff]] [--parent <repo>--<slug>] [<repo>] <slug>
+#                          worktree + tmux session + task (--bg: background agent;
+#                          --handoff: seed it from stdin and start it working)
+#   wb down [session|task] park: stop the agent and session, keep the worktree
+#   wb done [--close] [session|task]
+#                          close: stop the agent, remove the worktree (--close: and the session)
+#   wb resume <task>       rebuild a parked task's session, warm resume typed in
+#   wb checkpoint          stdin → a checkpoint in this session's task (/handoff)
+#   wb handoff-to <task>   stdin → a "from <this task>" entry in another task
+#   wb decision <title>    stdin → that Decisions entry in this session's task
+#   wb pickup              the latest checkpoint and every entry since it
+#   wb task-for-session    this session's task file
+#   wb clear-request       restart this session clean once its turn ends (/handoff)
+#   wb decide-path         a fresh answer-file path for a /decide buffer
+#   wb decide-buffer <file>  edit it in an nvim split; returns when the split closes
+#   wb decide-open <buffer|page> <file|url>  mark a /decide surface as waiting on Jet
+#   wb decide-clear <file|url>|--all          it's answered and recorded
+#   wb decide-spec-check <spec.json>          check a /decide page spec
+#                          (from checkpoint on, each takes --task <task> or --session-id <id>)
+#   wb help                this text
+
+# Checked before anything bash 5 only is parsed: namerefs, `local -A`,
+# `mapfile` and empty arrays under `set -u` all fail on macOS's bash 3.2.
+if [ -z "${BASH_VERSINFO:-}" ] || [ "${BASH_VERSINFO[0]}" -lt 5 ]; then
+  echo "wb: needs bash 5 or newer, found ${BASH_VERSION:-a non-bash shell}." >&2
+  echo "    Install it with: brew install bash" >&2
+  exit 1
+fi
+
+set -euo pipefail
+WB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SELF="$WB_DIR/$(basename "${BASH_SOURCE[0]}")"   # fzf bindings re-invoke us
+
+for _wb_lib in "$WB_DIR"/wb-lib/*.sh; do
+  # shellcheck source=/dev/null
+  source "$_wb_lib"
+done
+unset _wb_lib
+
+cmd_help() {
+  awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "$SELF" | sed -n '/^  wb/,$p'
+}
+
+# Tests source this file to reach functions without running a verb.
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+  case "${1:-}" in
+    '')          picker ;;
+    help|--help|-h) cmd_help ;;
+    new)         shift; cmd_new "$@" ;;
+    down)        shift; cmd_down "$@" ;;
+    done)        shift; cmd_done "$@" ;;
+    resume)      shift; cmd_resume "$@" ;;
+    checkpoint)  shift; cmd_checkpoint "$@" ;;
+    handoff-to)  shift; cmd_handoff_to "$@" ;;
+    decision)    shift; cmd_decision "$@" ;;
+    pickup)      shift; cmd_pickup "$@" ;;
+    task-for-session) shift; cmd_task_for_session "$@" ;;
+    clear-request) shift; cmd_clear_request "$@" ;;
+    _clear-cancel) shift; cmd_clear_cancel "$@" ;;
+    decide-path) shift; cmd_decide_path "$@" ;;
+    decide-buffer) shift; cmd_decide_buffer "$@" ;;
+    decide-open) shift; cmd_decide_open "$@" ;;
+    decide-clear) shift; cmd_decide_clear "$@" ;;
+    decide-spec-check) shift; cmd_decide_spec_check "$@" ;;
+    render)      shift; render_rows "$@" ;;
+    # fzf binds
+    _new)        shift; _new "$@" ;;
+    _down)       shift; _down "$@" ;;
+    _rename)     shift; _rename "$@" ;;
+    _break-out)  shift; _break_out "$@" ;;
+    _ctrl-x)     shift; _ctrl_x "$@" ;;
+    _set-mode)   shift; _set_mode "$@" ;;
+    _toggle-view) shift; _toggle_view "$@" ;;
+    _refresh-dormant) shift; _refresh_dormant "$@" ;;
+    _mode-header) shift; _mode_header "$@" ;;
+    _initial-pos) shift; _initial_pos "$@" ;;
+    _next-needs) shift; _next_needs "$@" ;;
+    _preview)    shift; _preview "$@" ;;
+    # fzf shows a preview's stderr, so the card's is dropped
+    _card)       shift; wb_card "$@" 2>/dev/null ;;
+    _preview-label) shift; _preview_label "$@" ;;
+    *) printf "wb: unknown verb '%s' — try wb help\n" "$1" >&2; exit 2 ;;
+  esac
+fi

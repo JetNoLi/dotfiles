@@ -4,7 +4,7 @@ vim.g.maplocalleader = " "
 require("core.remaps")
 require("core.autocommands")
 
-vim.lsp.set_log_level("debug") -- Logs in ~/.cache/nvim/lsp.log
+vim.lsp.set_log_level("warn") -- Logs in ~/.local/state/nvim/lsp.log
 
 vim.opt.encoding = "utf-8"
 vim.opt.clipboard = "unnamedplus"

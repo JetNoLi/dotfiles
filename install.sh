@@ -14,6 +14,11 @@ fi
 
 command -v stow >/dev/null || brew install stow
 command -v gh >/dev/null || brew install gh
+# wb needs bash 5; macOS ships 3.2. Homebrew's lands first on PATH.
+bash -c '[ "${BASH_VERSINFO[0]}" -ge 5 ]' || brew install bash
+command -v fzf >/dev/null || brew install fzf
+command -v fd >/dev/null || brew install fd
+command -v jq >/dev/null || brew install jq
 [ -d /Applications/Ghostty.app ] || brew install --cask ghostty
 
 # tmux plugins — tpm lives under the XDG tree (tmux.conf sets
@@ -23,10 +28,14 @@ command -v gh >/dev/null || brew install gh
 
 # -t "$HOME" so the target doesn't depend on where this repo is cloned.
 # Stow stops on a conflict (e.g. a real ~/.gitconfig) rather than overwriting.
-stow -t "$HOME" zsh tmux ohmyposh scripts aerospace ghostty git
+stow -t "$HOME" zsh tmux ohmyposh scripts aerospace ghostty git claude
+
+# wb's Claude Code hooks (agent status, pick-up), merged into its settings (not stowed).
+scripts/.config/scripts/tmux/claude-hooks-merge.sh
 
 echo "Done. Still needed by hand:"
 command -v gh >/dev/null && gh auth status >/dev/null 2>&1 || echo "  - gh auth login"
 [ -f ~/.gitconfig.local ] || echo "  - create ~/.gitconfig.local with your [user] name/email"
+command -v claude >/dev/null || echo "  - install Claude Code (wb's agents and status need it)"
 echo "  - open tmux and press <prefix> + I to install tmux plugins (if not already installed)"
 echo "Machine-local shell extras go in ~/.zshrc.local."

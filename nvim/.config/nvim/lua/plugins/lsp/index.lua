@@ -8,16 +8,6 @@ local emmetConfig = require("plugins.lsp.config.emmet")
 local templConfig = require("plugins.lsp.config.go-templ")
 local prettierConfig = require("plugins.lsp.config.prettier")
 local bashConfig = require("plugins.lsp.config.bash")
-
-local eslintConfig = {
-	on_attach = function(client, bufnr)
-		-- You can add eslint-specific keymaps or rely on the general ones from LspAttach
-	end,
-	settings = {
-		-- You can customize eslint settings here if needed
-	},
-}
-
 -- LSP Plugins
 local config = {
 	-- Main LSP Configuration
@@ -50,12 +40,10 @@ local config = {
 					vim.keymap.set(mode, keys, func, { buffer = event.buf, desc = "LSP: " .. desc })
 				end
 
-				vim.keymap.set("n", "<leader>rs", vim.lsp.buf.rename, { buffer = bufnr, desc = "LSP: Rename symbol" })
-
 				-- Rename the variable under your cursor.
 				--  Most Language Servers support renaming across files, etc.
 				map("grn", vim.lsp.buf.rename, "[R]e[n]ame")
-
+				vim.keymap.set("n", "<leader>rs", vim.lsp.buf.rename, { buffer = bufnr, desc = "LSP: Rename symbol" })
 				-- Execute a code action, usually your cursor needs to be on top of an error
 				-- or a suggestion from your LSP for this to activate.
 				map("gra", vim.lsp.buf.code_action, "[G]oto Code [A]ction", { "n", "x" })
@@ -89,9 +77,7 @@ local config = {
 				--  Useful when you're not sure what type a variable is and you want to see
 				--  the definition of its *type*, not where it was *defined*.
 				map("grt", require("telescope.builtin").lsp_type_definitions, "[G]oto [T]ype Definition")
-				-- map("K", vim.lsp.buf.hover, "Hover Documentation")
-
-				vim.keymap.set("n", "K", vim.lsp.buf.hover, { buffer = bufnr, desc = "Hover Symbol" })
+				map("K", vim.lsp.buf.hover, "Hover Documentation")
 
 				-- This function resolves a difference between neovim nightly (version 0.11) and stable (version 0.10)
 				---@param client vim.lsp.Client
@@ -202,7 +188,6 @@ local config = {
 		--  - settings (table): Override the default settings passed when initializing the server.
 		--        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
 		local servers = {
-			eslint = eslintConfig,
 			clangd = clangDConfig,
 			templ = templConfig,
 			emmet_language_server = emmetConfig,
@@ -217,7 +202,7 @@ local config = {
 
 		local mason_package_map = {
 			ts_ls = "typescript-language-server",
-			eslint = "eslint-lsp",
+			-- eslint = "eslint-lsp",
 			clangd = "clangd",
 			lua_ls = "lua-language-server",
 			bashls = "bash-language-server",
@@ -238,16 +223,6 @@ local config = {
 				print("Warning: No Mason package mapping for LSP server: " .. server_key)
 			end
 		end
-
-		vim.list_extend(ensure_installed, {
-			"stylua",
-			"gomodifytags",
-		})
-
-		require("mason-tool-installer").setup({
-			ensure_installed = ensure_installed,
-		})
-
 		-- Ensure the servers and tools above are installed
 		--
 		-- To check the current status of installed tools and/or manually install

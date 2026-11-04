@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Parallel Sessions Ideation</title>
+<style>
+  :root {
+    --bg: #fbfaf7; --panel: #ffffff; --ink: #1d1f23; --ink2: #4a4f57; --line: #e3e0d8;
+    --acc: #2f5d8a; --acc-soft: #e6eef6; --acc-text: #23476b;
+    --ok-soft: #e7f3ea; --ok-text: #24562f; --warn-soft: #fbf1df; --warn-text: #7a4e0e;
+    --mut-soft: #efeeea; --mut-text: #4f4d47;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #17191d; --panel: #1f2227; --ink: #e8e6e1; --ink2: #b4b1aa; --line: #34373e;
+      --acc: #8db4dc; --acc-soft: #22303f; --acc-text: #b9d3ee;
+      --ok-soft: #1f3125; --ok-text: #a9d8b4; --warn-soft: #3a2f1c; --warn-text: #f0cf95;
+      --mut-soft: #2a2c31; --mut-text: #c9c6bf;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.6 var(--sans); }
+  main { max-width: 900px; margin-inline: auto; padding: 2rem 1rem 3rem; }
+  p, li, dd { max-width: 72ch; }
+  h1 { font-size: 1.6rem; line-height: 1.25; margin: .2rem 0 .6rem; }
+  h2 { font-size: 1.25rem; margin: 2.2rem 0 .7rem; padding-bottom: .3rem; border-bottom: 1px solid var(--line); }
+  h3 { font-size: 1.05rem; margin: 0 0 .4rem; }
+  .eyebrow { font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--ink2); }
+  .meta { display: flex; flex-wrap: wrap; gap: .4rem 1.2rem; font-size: .85rem; color: var(--ink2); margin: 0; }
+  .meta dt { font-weight: 600; display: inline; } .meta dd { display: inline; margin: 0; }
+  .meta div { white-space: nowrap; }
+  code { font-family: var(--mono); font-size: .86em; background: var(--mut-soft); color: var(--mut-text); padding: .05em .3em; border-radius: 4px; }
+  strong { color: inherit; }
+  a { color: var(--acc); }
+  .stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: .6rem; margin: 1.2rem 0; }
+  .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: .6rem .8rem; }
+  .stat b { display: block; font: 600 1.4rem/1.2 var(--mono); }
+  .stat span { font-size: .78rem; color: var(--ink2); }
+  .jump { columns: 2; column-gap: 2rem; padding-left: 1.2rem; font-size: .92rem; }
+  @media (max-width: 640px) { .jump { columns: 1; } }
+  article.idea { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 1rem 1.2rem; margin: 1rem 0; }
+  .chips { display: flex; flex-wrap: wrap; gap: .35rem; margin: .2rem 0 .7rem; }
+  .chip { font: 600 .74rem/1 var(--sans); padding: .32rem .55rem; border-radius: 999px; border: 1px solid transparent; }
+  .chip.id { background: var(--acc-soft); color: var(--acc-text); }
+  .chip.axis { background: var(--mut-soft); color: var(--mut-text); }
+  .chip.conf { background: var(--ok-soft); color: var(--ok-text); }
+  .chip.cx { background: var(--warn-soft); color: var(--warn-text); }
+  dl.fields { margin: 0; }
+  dl.fields dt { font-size: .72rem; letter-spacing: .07em; text-transform: uppercase; color: var(--ink2); margin-top: .7rem; font-weight: 600; }
+  dl.fields dd { margin: .15rem 0 0; }
+  dl.fields dd ul { margin: .2rem 0; padding-left: 1.1rem; }
+  figure { margin: .9rem 0 .2rem; }
+  figure svg { width: 100%; height: auto; display: block; }
+  figcaption { font-size: .8rem; color: var(--ink2); margin-top: .3rem; }
+  svg text { font-family: var(--sans); fill: var(--ink); }
+  svg .box { fill: var(--panel); stroke: var(--line); stroke-width: 1.5; }
+  svg .hl { fill: var(--acc-soft); stroke: var(--acc); stroke-width: 1.5; }
+  svg .warnbox { fill: var(--warn-soft); stroke: var(--warn-text); stroke-width: 1.2; }
+  svg .arrow { stroke: var(--ink2); stroke-width: 1.5; fill: none; }
+  svg .small { font-size: 11px; fill: var(--ink2); }
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  th, td { text-align: left; vertical-align: top; padding: .45rem .55rem; border-bottom: 1px solid var(--line); }
+  th { font-size: .75rem; letter-spacing: .06em; text-transform: uppercase; color: var(--ink2); }
+  .callout { background: var(--acc-soft); color: var(--acc-text); border-radius: 8px; padding: .7rem 1rem; margin: 1rem 0; }
+  .callout p { margin: .2rem 0; }
+  footer.composition-signal { margin-top: 2.5rem; font-size: .78rem; color: var(--ink2); border-top: 1px solid var(--line); padding-top: .8rem; }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <div class="eyebrow">Ideation</div>
+  <h1>Ideation: Parallel sessions, coordination and long-running tasks</h1>
+  <dl class="meta">
+    <div><dt>Date:</dt> <dd><time datetime="2026-10-25">2026-10-25</time></dd></div>
+    <div><dt>Topic:</dt> <dd>parallel-sessions-and-tasks</dd></div>
+    <div><dt>Mode:</dt> <dd>repo-grounded</dd></div>
+  </dl>
+  <dl class="meta" style="margin-top:.4rem">
+    <div style="white-space:normal"><dt>Focus:</dt> <dd>Alternatives for running many parallel Claude Code sessions, tracking and coordinating them, and a task system for long-running projects, across macOS and Ubuntu. A fresh look at the workflow rather than a straight port of <code>wb</code>.</dd></div>
+  </dl>
+  <div class="stats">
+    <div class="stat"><b>~45</b><span>raw ideas across 6 lenses</span></div>
+    <div class="stat"><b>20</b><span>after merging duplicates</span></div>
+    <div class="stat"><b>7</b><span>survivors</span></div>
+    <div class="stat"><b>5 / 5</b><span>axes covered</span></div>
+  </div>
+</header>
+
+<section id="grounding-context">
+<h2>Grounding Context</h2>
+<h3>Codebase Context</h3>
+<ul>
+  <li><strong>Mac (personal repo).</strong> Almost nothing: <code>session.sh</code> (an fzf picker giving one tmux session per project) and <code>notes.sh</code>. No awareness of what agents are doing, no task store.</li>
+  <li><strong>Ubuntu (work dotfiles): the <code>wb</code> workbench.</strong> About 16k lines of bash (<code>wb.sh</code> ~6.2k), about 50 test files, about 110 PRs and about 30 skills. Each task gets one tmux session, one git worktree and one markdown task file. The task store, <code>~/code/tasks</code>, holds about 360 files with Plan / Handoffs / Decisions / Done / Follow-ups sections, per-task locks, parent/child families, a decision-capture shelf and a weekly review. The direction set on 2026-10-17 is to delete features, then have Go own reading and writing the task store.</li>
+  <li><strong>Most-used loops:</strong> <code>/wb-resume</code> 91 and <code>/wb-save</code> 86 transcripts, <code>/decision-buffer</code> 56, <code>/handoff</code> 27, <code>/close-out</code> 19. Weekly review has run once. Several skills have never been used.</li>
+  <li><strong>Known fragile spots.</strong> Status is half hooks, half scraping of pane titles and modals ("this pair of greps is the one thing to recalibrate"). Handoff types into panes with <code>send-keys</code>; the first Enter is sometimes dropped and the permission menu is answered by sending '2'. About 30 Linux-only dependencies. Task status values have drifted from the schema. Planned tasks outnumber doing tasks 183 to 22.</li>
+  <li><strong>Boundary.</strong> Employer content never lands in personal surfaces. The task store has no remote, and the boundary rule is "deliberately the last decision". A single dotfiles repo for both machines forces that decision.</li>
+</ul>
+<h3>External Context</h3>
+<ul>
+  <li><strong>Claude Code now covers part of what <code>wb</code> builds by hand</strong> (checked against code.claude.com):
+    <ul>
+      <li><strong>Messaging between sessions:</strong> <code>ListAgents</code>/<code>SendMessage</code> over a per-session socket, with <code>notify_when_idle</code>. Hooks and scripts get the socket, so they can post into a session.</li>
+      <li><strong>Agent view:</strong> <code>claude agents</code> shows each session as Working / Needs input / Idle / Completed. Sessions can run in the background with <code>--bg</code> or <code>/bg</code>.</li>
+      <li><strong>Remote Control:</strong> reach a local session from your phone.</li>
+      <li><strong>Agent teams</strong> (experimental): a shared task list plus a mailbox per teammate.</li>
+    </ul>
+  </li>
+  <li><strong>Agent-oriented trackers:</strong> beads (a git-backed dependency graph with <code>bd ready</code> and compaction of old work) and Backlog.md (markdown task files kept in the repo).</li>
+  <li><strong>Hook-driven status tools</strong> (cekanje, CCN, ntfy Stop-hook scripts) each independently rebuilt the same status layer <code>wb</code> has.</li>
+  <li><strong>Third-party orchestrators come and go:</strong> Vibe Kanban's company shut down in April 2026, and Crystal became Nimbalyst. That argues for keeping your own layer thin.</li>
+</ul>
+</section>
+
+<section id="topic-axes">
+<h2>Topic Axes</h2>
+<ol>
+  <li>Session lifecycle: start, switch, pause, save/resume, wind down</li>
+  <li>Agent awareness and attention: which agent is working, done or needs you</li>
+  <li>Coordination between sessions: handoff, messaging a live agent, fan-out</li>
+  <li>Durable task record: store, schema, families, decisions, review cadence</li>
+  <li>Cross-machine, boundary and upkeep: Mac/Ubuntu parity, personal/employer split, cost of maintaining the tooling</li>
+</ol>
+</section>
+
+<section id="ranked-ideas">
+<h2>Ranked Ideas</h2>
+<ul class="jump">
+  <li><a href="#i1">1. The Mac as a native-only control arm</a></li>
+  <li><a href="#i2">2. Native messaging replaces send-keys</a></li>
+  <li><a href="#i3">3. Implicit checkpoints and an evening screening</a></li>
+  <li><a href="#i4">4. Realms: the boundary decided by location</a></li>
+  <li><a href="#i5">5. Off-terminal paging on native state</a></li>
+  <li><a href="#i6">6. Append-only task log, derived status, expiring backlog</a></li>
+  <li><a href="#i7">7. A foreman agent</a></li>
+</ul>
+
+<article class="idea" id="i1">
+  <h3>1. The Mac as a native-only control arm</h3>
+  <div class="chips"><span class="chip id">Idea 1</span><span class="chip axis">Axis 5 · Cross-machine &amp; upkeep</span><span class="chip conf">Confidence 85%</span><span class="chip cx">Complexity Low</span></div>
+  <dl class="fields">
+    <dt>Description</dt>
+    <dd>The Mac has none of <code>wb</code>, so use it as a free experiment. For two or three weeks, run it on Claude Code's native features only (agent view, <code>--bg</code>, messaging between sessions, Remote Control, worktrees, named resume) plus an off-the-shelf tracker such as Backlog.md or beads. Keep a short "missed it" log, and score each <code>wb</code> feature as <em>native covers it</em>, <em>keep</em> or <em>retire</em>. Port to the shared repo only what the log shows is missing, and give tooling PRs an explicit budget.</dd>
+    <dt>Basis</dt>
+    <dd><ul>
+      <li><code>direct:</code> the Mac has only <code>session.sh</code> and <code>notes.sh</code>; the <code>wb</code> port was kept out of the convergence plan; about 40 October PRs went to the tooling itself; several skills have zero uses.</li>
+      <li><code>direct:</code> the current-state doc says the native overlap "has not been checked against what wb hand-builds".</li>
+      <li><code>external:</code> the verifier confirmed agent view (with a Needs input state), <code>--bg</code> and <code>ListAgents</code>/<code>SendMessage</code> exist.</li>
+    </ul></dd>
+    <dt>Rationale</dt>
+    <dd>Porting first copies features before anyone knows which ones the platform made redundant. A clean machine is the only cheap place to measure that, and the answer reshapes every other idea here, including how much of the Go port is still needed.</dd>
+    <dt>Downsides</dt>
+    <dd>Personal Mac work differs from work-machine work (fewer parallel tasks, no Jira), so the experiment undercounts some needs. Several native features are research previews and may change under you.</dd>
+  </dl>
+</article>
+
+<article class="idea" id="i2">
+  <h3>2. Native messaging replaces send-keys; fan-out becomes compiled "parts"</h3>
+  <div class="chips"><span class="chip id">Idea 2</span><span class="chip axis">Axis 3 · Coordination</span><span class="chip conf">Confidence 75%</span><span class="chip cx">Complexity Medium</span></div>
+  <dl class="fields">
+    <dt>Description</dt>
+    <dd>Keep the handoff convention, where the task file is the payload and the message is a pointer to it. Deliver the pointer with Claude Code's <code>SendMessage</code> instead of typing into a pane: no boot regex, no resent Enter, no '2' keystroke for the permission menu. <code>send-keys</code> is only for booting a brand-new session. Once delivery is reliable, fan-out is cheap. A family's plan and <code>CONCEPTS.md</code> compile into one "part" per child: its slice of the plan, its first action, the files owned by its siblings (hands off), and where to report back. Each part goes as a message.</dd>
+    <dt>Basis</dt>
+    <dd><ul>
+      <li><code>direct:</code> <code>handoff.sh:393-400</code> "The very first Enter ... can be silently dropped — observed live"; <code>:410-412</code> answers the permission menu by sending '2'; <code>roadmap-handoff.md:176-194</code> says this class of bug can't be caught in tests.</li>
+      <li><code>direct:</code> <code>handoff-guide.md:71-87</code> lists fan-out, instructing a busy agent and non-blocking handoff as non-goals.</li>
+      <li><code>external:</code> native messaging uses a per-session socket that a busy receiver reads between tool calls; hooks and scripts get the socket.</li>
+    </ul></dd>
+    <dt>Rationale</dt>
+    <dd>Handoff is used often (27 transcripts) and is the most fragile mechanism in the system. Replacing its delivery path removes a bug class that can't be tested, makes three listed non-goals reachable at once, and behaves the same on both OSes.</dd>
+    <dt>Downsides</dt>
+    <dd>Native delivery starts a turn on an idle receiver. That is close to the "idle-triggered delivery" the queue plan explicitly rejected, so you need to decide whether that rejection still holds. Messages from another Claude can't grant permission, so a spawned agent's first permission prompt still needs you.</dd>
+  </dl>
+</article>
+
+<article class="idea" id="i3">
+  <h3>3. Implicit checkpoints and an evening screening</h3>
+  <div class="chips"><span class="chip id">Idea 3</span><span class="chip axis">Axis 1 · Session lifecycle</span><span class="chip conf">Confidence 75%</span><span class="chip cx">Complexity Medium</span></div>
+  <dl class="fields">
+    <dt>Description</dt>
+    <dd>Two moves on one primitive:
+      <ul>
+        <li><strong>Checkpoints.</strong> A Stop / PreCompact / SessionEnd hook uses a cheap model to write a draft handoff onto the shelf. <code>/clear</code> or exit is the trigger, and you are the one who does it, so the block on agents clearing themselves never applies. <code>/wb-save</code> and <code>/wb-resume</code> become escape hatches rather than rituals.</li>
+        <li><strong>Evening screening.</strong> At the end of the day, one "screening" pass walks every live session: its diff since morning, a short digest and the drafted handoff. Accepting a draft records it and closes that session cleanly. The morning step rebuilds sessions from the store.</li>
+      </ul>
+      Save, review and wind-down all become one sitting.</dd>
+    <dt>Basis</dt>
+    <dd><ul>
+      <li><code>direct:</code> <code>wb-save.md:8-11</code> says an agent clearing its own context was hard-blocked; usage is 91 and 86 for resume and save; implicit save is "planned, not built" (<code>where-we-are.md:176-182</code>).</li>
+      <li><code>direct:</code> capture-nudge plan <code>:31-33</code>: "38 nudges fired and 3 were genuinely followed ... accepted 10 times out of 12" when a person reviewed the draft; one session accepted 5 of 7 drafts in under two minutes.</li>
+      <li><code>direct:</code> the original shutdown scope, "sweep every live session, capture a quick status into each task file ... then close all sessions cleanly", never shipped (<code>roadmap-day-bookends.md:31-33</code>).</li>
+    </ul></dd>
+    <dt>Rationale</dt>
+    <dd>The two most-used skills are rituals around one keystroke. Your own data says drafts reviewed in a batch work and prompts mid-task don't. Combining them removes about 177 manual invocations and finishes the day-bookends thread with the same mechanism.</dd>
+    <dt>Downsides</dt>
+    <dd>Implicit save is already on the roadmap, so the new part is the screening. A cheap model can write a weaker handoff than a deliberate <code>/wb-save</code>. The screening needs to stay quick or it becomes the next ceremony that never gets run.</dd>
+  </dl>
+</article>
+
+<article class="idea" id="i4">
+  <h3>4. Realms: the boundary decided by location, not by a rule</h3>
+  <div class="chips"><span class="chip id">Idea 4</span><span class="chip axis">Axis 5 · Cross-machine &amp; boundary</span><span class="chip conf">Confidence 70%</span><span class="chip cx">Complexity Medium</span></div>
+  <dl class="fields">
+    <dt>Description</dt>
+    <dd>The shared dotfiles carry only tooling and generic skills. Every command resolves a <em>realm</em> from the git remote of the working directory, the same way <code>includeIf</code> picks your git identity: employer org → work realm, <code>JetNoLi/*</code> or non-code → personal realm. Each realm has its own store root, and only the personal one may have a remote. A hook refuses any write, recall or handoff that would cross realms. Employer-specific settings, the plugin marketplaces and <code>wb</code>'s work-only parts live in a per-machine overlay (convergence option c). Two variants worth weighing:
+      <ul>
+        <li>The record lives in the repo it's about, so git ownership <em>is</em> the classification.</li>
+        <li>The employer's tracker holds the durable record for work tasks, and the local store is only expiring scratch.</li>
+      </ul>
+    Learning-os and other personal long-running projects then become a personal-realm family instead of a second system.</dd>
+    <dt>Basis</dt>
+    <dd><ul>
+      <li><code>direct:</code> <code>limitations.md:42-49</code> calls the boundary rule "deliberately the last decision", with "the task store gets no remote" as the interim guard.</li>
+      <li><code>direct:</code> <code>claude/README.md:44-50</code>: settings.json mixes machine-local state with employer plugin marketplaces.</li>
+      <li><code>direct:</code> the convergence findings list options (a) personal base, (b) work repo, (c) base plus overlay, and plan git identity through <code>includeIf</code>.</li>
+    </ul></dd>
+    <dt>Rationale</dt>
+    <dd>Merging the repos makes the deferred decision unavoidable. Deciding by location gives a mechanical check instead of relying on you to remember a rule. It also lets the personal side sync across both machines while work content stays unsyncable.</dd>
+    <dt>Downsides</dt>
+    <dd>Tasks that span realms (a personal tool used at work) need a convention. The record-in-repo variant breaks families that span several repos. The employer-tracker variant ties the workflow to Jira.</dd>
+  </dl>
+  <figure>
+    <svg viewBox="0 0 640 170" role="img" aria-label="Realm routing: the working directory's git remote picks the work or personal store">
+      <rect class="box" x="10" y="60" width="140" height="50" rx="8"/>
+      <text x="80" y="82" text-anchor="middle">cwd's git remote</text>
+      <text x="80" y="99" text-anchor="middle" class="small">(like includeIf)</text>
+      <path class="arrow" d="M150 75 L250 40" marker-end="url(#ah)"/>
+      <path class="arrow" d="M150 95 L250 130" marker-end="url(#ah)"/>
+      <rect class="warnbox" x="255" y="15" width="170" height="50" rx="8"/>
+      <text x="340" y="37" text-anchor="middle">Work realm</text>
+      <text x="340" y="54" text-anchor="middle" class="small">local store · no remote</text>
+      <rect class="hl" x="255" y="105" width="170" height="50" rx="8"/>
+      <text x="340" y="127" text-anchor="middle">Personal realm</text>
+      <text x="340" y="144" text-anchor="middle" class="small">synced store · Mac + Ubuntu</text>
+      <rect class="box" x="470" y="60" width="160" height="50" rx="8"/>
+      <text x="550" y="82" text-anchor="middle">Shared dotfiles</text>
+      <text x="550" y="99" text-anchor="middle" class="small">tooling only, no records</text>
+      <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="currentColor" style="color:var(--ink2)"/></marker></defs>
+    </svg>
+    <figcaption>The record's location follows who owns the code. The shared repo only ever holds tooling.</figcaption>
+  </figure>
+</article>
+
+<article class="idea" id="i5">
+  <h3>5. Off-terminal paging on native state</h3>
+  <div class="chips"><span class="chip id">Idea 5</span><span class="chip axis">Axis 2 · Awareness &amp; attention</span><span class="chip conf">Confidence 70%</span><span class="chip cx">Complexity Low</span></div>
+  <dl class="fields">
+    <dt>Description</dt>
+    <dd>Turn "glance at the status bar" into "get paged only when you're the bottleneck". Needs-input events, and finished turns over 30 seconds, push to the phone or desktop (ntfy, macOS notifications, <code>notify-send</code>). They are deduplicated and acknowledged when you focus the pane. The payload carries no content, only something like "ubuntu · slot 3 · needs input", so nothing employer-related leaves the machine. Tapping opens Remote Control. Read status from native state (hooks and agent view) first. A hook-fed event log is the fallback only if that proves insufficient, and then the title and modal scraping gets deleted.</dd>
+    <dt>Basis</dt>
+    <dd><ul>
+      <li><code>direct:</code> attention reaches you only through tmux status-left and <code>prefix+j/J</code>, so nothing reaches you away from the terminal.</li>
+      <li><code>direct:</code> <code>tmux.conf:125-128</code> "focus = acknowledged" and <code>DONE_MIN_SECS=30</code> already encode paging rules.</li>
+      <li><code>direct:</code> <code>lib.sh:76-89</code> modal scan pinned to a Claude Code version.</li>
+      <li><code>external:</code> the ntfy Stop-hook pattern, Remote Control, and native <code>notify_when_idle</code>.</li>
+    </ul></dd>
+    <dt>Rationale</dt>
+    <dd>Parallel agents only pay off if you can walk away. Today a blocked agent waits silently. The rules already exist; only the delivery is missing, and that piece is identical on both OSes.</dd>
+    <dt>Downsides</dt>
+    <dd>It needs a phone channel you trust, such as a self-hosted or private ntfy topic. Some work agents may need a dedicated topic. If it's tuned badly it becomes noise.</dd>
+  </dl>
+</article>
+
+<article class="idea" id="i6">
+  <h3>6. Append-only task log, derived status, expiring backlog</h3>
+  <div class="chips"><span class="chip id">Idea 6</span><span class="chip axis">Axis 4 · Durable task record</span><span class="chip conf">Confidence 60%</span><span class="chip cx">Complexity High</span></div>
+  <dl class="fields">
+    <dt>Description</dt>
+    <dd>Treat a task file like a lab notebook:
+      <ul>
+        <li><strong>Append-only.</strong> It holds dated, typed entries (<code>decision:</code>, <code>handoff:</code>, <code>done:</code>, <code>follow-up:</code>). Status, "stale" and "needs review" are computed from the latest entries and their age, never stored, and frontmatter shrinks to identity.</li>
+        <li><strong>Planned work expires.</strong> Anything untouched for N weeks compacts to one "someday" line and is archived. It comes back only when recalled by <code>#slug</code>.</li>
+      </ul>
+      That keeps the live set small enough that the unused store-wide board and the review ritual have nothing left to do.</dd>
+    <dt>Basis</dt>
+    <dd><ul>
+      <li><code>direct:</code> <code>limitations.md:51-61</code> says the schema migration never ran and status values drift.</li>
+      <li><code>direct:</code> Go plan <code>:37</code> "Three separate awk-based frontmatter writers"; 183 planned against 22 doing.</li>
+      <li><code>direct:</code> weekly review is manual-only and has run once.</li>
+      <li><code>external:</code> beads compaction; the lab-notebook pattern.</li>
+    </ul></dd>
+    <dt>Rationale</dt>
+    <dd>Every drift bug comes from mutable state kept in sync by several writers. Appends need no lock and merge cleanly across machines. The Go store then needs an append primitive and one fold instead of a frontmatter writer, which shrinks the port before it starts.</dd>
+    <dt>Downsides</dt>
+    <dd>It changes about 360 existing files and every skill that reads sections. It overlaps the already-planned Go store, so it is best judged as an input to that plan rather than a separate build. Expiry may bury something you wanted.</dd>
+  </dl>
+</article>
+
+<article class="idea" id="i7">
+  <h3>7. A foreman agent: you manage one, it manages the rest</h3>
+  <div class="chips"><span class="chip id">Idea 7</span><span class="chip axis">Axis 3 · Coordination</span><span class="chip conf">Confidence 45%</span><span class="chip cx">Complexity Medium</span></div>
+  <dl class="fields">
+    <dt>Description</dt>
+    <dd>Flip "many sessions you route between" to one long-lived foreman session per day. You talk only to the foreman. It starts background workers (<code>--bg</code> or worktree agents) per task, receives their replies through native messaging and <code>notify_when_idle</code>, and brings up only decisions and permission prompts, which it must pass to you and never answer itself. tmux becomes a place to look, not the control surface. It is the most different direction here, and a direct test of whether one tmux session per task is still the right unit.</dd>
+    <dt>Basis</dt>
+    <dd><ul>
+      <li><code>external:</code> background sessions, agent view and messaging exist natively; messages from another Claude can't grant consent.</li>
+      <li><code>direct:</code> the routing machinery (<code>send-keys</code>, boot regex, the '2' keystroke, <code>handoff.sh:219</code> and <code>:410-412</code>) exists because you are the router; <code>roadmap-handoff.md:133-137</code> shows a <code>send-keys</code> side effect changing your default model.</li>
+    </ul></dd>
+    <dt>Rationale</dt>
+    <dd>If it works, most of the coordination layer becomes delegation instead of plumbing. If it doesn't, you learn quickly why the current shape is right.</dd>
+    <dt>Downsides</dt>
+    <dd>Background sessions are a research preview. The foreman's own context fills up over a day. Inbound message hold rules can stall it. It competes with idea 2 for the same problem, so try it as a spike rather than a plan.</dd>
+  </dl>
+  <figure>
+    <svg viewBox="0 0 640 160" role="img" aria-label="Foreman topology: you talk to one foreman, which dispatches workers and escalates decisions back">
+      <rect class="hl" x="10" y="55" width="110" height="50" rx="8"/>
+      <text x="65" y="85" text-anchor="middle">You</text>
+      <path class="arrow" d="M120 72 L225 72" marker-end="url(#ah2)"/>
+      <path class="arrow" d="M225 90 L120 90" marker-end="url(#ah2)"/>
+      <text x="172" y="64" text-anchor="middle" class="small">intent</text>
+      <text x="172" y="108" text-anchor="middle" class="small">decisions only</text>
+      <rect class="box" x="230" y="55" width="130" height="50" rx="8"/>
+      <text x="295" y="85" text-anchor="middle">Foreman</text>
+      <path class="arrow" d="M360 70 L470 30" marker-end="url(#ah2)"/>
+      <path class="arrow" d="M360 80 L470 80" marker-end="url(#ah2)"/>
+      <path class="arrow" d="M360 90 L470 130" marker-end="url(#ah2)"/>
+      <rect class="box" x="475" y="12" width="150" height="34" rx="6"/><text x="550" y="34" text-anchor="middle" class="small">worker · task A (--bg)</text>
+      <rect class="box" x="475" y="63" width="150" height="34" rx="6"/><text x="550" y="85" text-anchor="middle" class="small">worker · task B (--bg)</text>
+      <rect class="box" x="475" y="114" width="150" height="34" rx="6"/><text x="550" y="136" text-anchor="middle" class="small">worker · task C (--bg)</text>
+      <defs><marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="currentColor" style="color:var(--ink2)"/></marker></defs>
+    </svg>
+    <figcaption>Routing between sessions moves from you to the foreman. Permission prompts still come to you.</figcaption>
+  </figure>
+</article>
+
+<div class="callout">
+  <p><strong>How the set fits together.</strong> Idea 1 is the measurement that tells you how much of the rest you need. Ideas 2, 3 and 5 are a thin layer that works on both OSes, built on native features. Idea 4 is the decision the repo merge forces. Idea 6 feeds into the already-planned Go store. Idea 7 is the outlier that challenges the whole shape.</p>
+</div>
+</section>
+
+<section id="rejection-summary">
+<h2>Rejection Summary</h2>
+<table>
+  <thead><tr><th>#</th><th>Idea</th><th>Reason rejected</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>Hook event log as the single source of status truth</td><td>Weakened by verification: native agent view already reports Needs input / Working. Folded into idea 5 as a fallback only.</td></tr>
+    <tr><td>2</td><td>Disposable sessions: always cold-start from the task page</td><td>Drops warm resume, the most-used loop (91). Only makes sense paired with checkpoints, so folded into idea 3.</td></tr>
+    <tr><td>3</td><td>Native-first adapter layer plus usage-driven retirement</td><td>Generic on its own; folded into idea 1 as its scoring and PR-budget mechanism.</td></tr>
+    <tr><td>4</td><td>Schema contract plus a cross-OS validator binary</td><td>The Go direction was already set on 2026-10-17; the bolt-on adds little. The "adopt Backlog.md or beads format" angle lives on in idea 1.</td></tr>
+    <tr><td>5</td><td>Clerk shelf: agents never write the record</td><td>Restates the capture rework that has already shipped. Folded into idea 3's screening.</td></tr>
+    <tr><td>6</td><td>Simul rotation: walk the boards instead of being paged</td><td>Basis misapplied: the "interrupts lose" data is about prompts injected into the agent, not about paging a human.</td></tr>
+    <tr><td>7</td><td>Mainframe: agents only on Linux hosts, the Mac as a thin client</td><td>Heavy lifestyle change, and the Go port already targets the Linux dependency. Better raised as a variant when brainstorming idea 1 or 4.</td></tr>
+    <tr><td>8</td><td>Score and parts as a standalone fan-out feature</td><td>Depends on reliable delivery; merged into idea 2.</td></tr>
+    <tr><td>9</td><td>Recall as a <code>#slug</code> hook; delete the board</td><td>Small; follows naturally from idea 6's expiry and recall.</td></tr>
+    <tr><td>10</td><td>Task record lives in its repo / employer tracker holds work tasks</td><td>Kept as variants inside idea 4 rather than separate directions.</td></tr>
+  </tbody>
+</table>
+</section>
+
+<footer class="composition-signal">Composed <time datetime="2026-10-25">2026-10-25</time> by ce-ideate from the user's request in session, grounded on <code>docs/brainstorms/2026-10-25-sessions-and-tasks-current-state.md</code> and a read-only clone of the Ubuntu work dotfiles.</footer>
+</main>
+</body>
+</html>
