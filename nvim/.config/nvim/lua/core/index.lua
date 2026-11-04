@@ -102,14 +102,3 @@ vim.opt.scrolloff = 10
 -- instead raise a dialog asking if you wish to save the current file(s)
 -- See `:help 'confirm'`
 vim.opt.confirm = true
-
-vim.lsp.handlers["textDocument/hover"] = function(err, result, ctx, config)
-	if err then
-		print("Hover error:", vim.inspect(err))
-	elseif not (result and result.contents) then
-		print("No hover content")
-	else
-		print("Hover result:", vim.inspect(result))
-		vim.lsp.handlers.hover(err, result, ctx, config)
-	end
-end

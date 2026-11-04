@@ -77,11 +77,7 @@ local config = {
 				--  Useful when you're not sure what type a variable is and you want to see
 				--  the definition of its *type*, not where it was *defined*.
 				map("grt", require("telescope.builtin").lsp_type_definitions, "[G]oto [T]ype Definition")
-				map("K", function()
-					print("calling hover")
-					vim.lsp.buf.hover()
-					print("hover called")
-				end, "Hover Documentation")
+				map("K", vim.lsp.buf.hover, "Hover Documentation")
 
 				-- This function resolves a difference between neovim nightly (version 0.11) and stable (version 0.10)
 				---@param client vim.lsp.Client
@@ -199,13 +195,13 @@ local config = {
 			htmx = htmxConfig,
 			gopls = goConfig,
 			prettier = prettierConfig,
-			tsserver = tsConfig,
+			ts_ls = tsConfig,
 			lua_ls = luaConfig,
 			bashls = bashConfig,
 		}
 
 		local mason_package_map = {
-			tsserver = "typescript-language-server",
+			ts_ls = "typescript-language-server",
 			-- eslint = "eslint-lsp",
 			clangd = "clangd",
 			lua_ls = "lua-language-server",
