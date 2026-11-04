@@ -119,7 +119,9 @@ fake_bg() {
 # stop, WB_TEST_STOP_WRITES=<file> writes into the worktree the way a
 # mid-turn agent would, WB_TEST_STOP_FAILS=1 makes the stop fail, and
 # WB_TEST_STOP_GONE=1 makes it fail because the job already exited.
-# WB_TEST_BG_FAILS=1 makes `--bg` fail.
+# WB_TEST_BG_FAILS=1 makes `--bg` fail, and WB_TEST_BG_LOCKS=<lock dir>
+# makes it leave that task lock held by the test, as if another writer took
+# it while the agent started.
 fake_claude_bin() {
   local sid="${1:-86e34592-cdb9-4da2-bf55-6db85f3bc22e}"
   cat > "$T/bin/claude" <<FAKE
@@ -128,6 +130,7 @@ echo "\$*" >> "$T/claude.log"
 case "\$1" in
   --bg)
     [ -z "\${WB_TEST_BG_FAILS:-}" ] || { echo "couldn't start" >&2; exit 1; }
+    [ -z "\${WB_TEST_BG_LOCKS:-}" ] || { mkdir -p "\$WB_TEST_BG_LOCKS"; echo $$ > "\$WB_TEST_BG_LOCKS/pid"; }
     name="\$3"; job="${sid:0:8}"
     echo "515151     1 Sun Oct  5 17:48:10 2026 claude" >> "$T/ps-extra"
     jq -n --arg cwd "\$PWD" --arg name "\$name" '{pid: 515151, sessionId: "$sid", jobId: "${sid:0:8}",

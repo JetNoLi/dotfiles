@@ -72,6 +72,19 @@ wb new --bg dotfiles plain-bg >/dev/null 2>&1
 assert_eq "wb new --bg without --handoff starts the agent with no prompt" "--bg -n dotfiles--plain-bg" "$(cat "$T/claude.log")"
 assert_eq "and writes no pick-up marker" no "$([ -e "$WB_STATE_DIR/pickup/dotfiles--plain-bg" ] && echo yes || echo no)"
 
+# A run that started the agent but couldn't take the lock, then a retry.
+: > "$T/claude.log"; rm -f "$CLAUDE_SESSIONS_DIR"/515151.json
+lockdir="$WB_STATE_DIR/locks/dotfiles--retry-bg.md.lock"
+out="$(WB_LOCK_WAIT=0 WB_TEST_BG_LOCKS="$lockdir" wb new --bg dotfiles retry-bg 2>&1)"; code=$?
+assert_eq "with the task locked, the record write after the start fails" 75 "$code"
+rm -rf "$lockdir"
+out="$(wb new --bg dotfiles retry-bg 2>&1)"; code=$?
+assert_eq "the retry succeeds" 0 "$code"
+assert_eq "and starts no second agent" 1 "$(grep -c -- '^--bg' "$T/claude.log")"
+assert "it says it found the running one" 'already has a background agent' "$out"
+assert "and records it as @primary" '^86e34592-cdb9-4da2-bf55-6db85f3bc22e@[^,]*@primary$' \
+  "$(wb_task_get "$TASKS_DIR/dotfiles--retry-bg.md" claude_sessions)"
+
 out="$(echo 'Next: x' | wb new --bg --handoff dotfiles seeded 2>&1)"; code=$?
 assert_eq "--handoff onto an existing task refuses" 1 "$code"
 assert "pointing at /handoff <task> instead" 'already exists' "$out"

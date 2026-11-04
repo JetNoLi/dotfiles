@@ -177,17 +177,29 @@ wb_claude_pane_cmd() {
   printf '; exec "${SHELL:-/bin/sh}"\n'
 }
 
-# _wb_start_bg <session> <worktree> <task_file> [prompt] [permission_mode] —
-# start the agent as a background session (KTD6) and record its full session
-# id as @primary. A prompt starts it working at once (KTD12). `claude --bg`
-# prints a short id; attach and stop take that, the record keeps the full UUID.
+# _wb_start_bg <session> <worktree> <task_file> [prompt] [permission_mode]
+# [reuse] — start the agent as a background session (KTD6) and record its
+# full session id as @primary. A prompt starts it working at once (KTD12).
+# `claude --bg` prints a short id; attach and stop take that, the record
+# keeps the full UUID. With "reuse" (wb new), an agent the task already has
+# is recorded instead: a retry after a failure past the start (the lock
+# below, say) finds the one the first run started. A restart never reuses.
 _wb_start_bg() {
-  local session="$1" wt="$2" file="$3" out job sid
-  wb_claude_args "${5:-}" "${4:-}"
-  out="$(cd "$wt" && claude --bg -n "$session" "${WB_CLAUDE_ARGS[@]}" 2>&1)" || { printf '%s\n' "$out" >&2; return 1; }
-  job="$(sed -n 's/^backgrounded · \([^ ]*\) ·.*/\1/p' <<< "$out" | head -n1)"
-  [ -n "$job" ] || { echo "wb new: couldn't read the session id from claude --bg:" >&2; printf '%s\n' "$out" >&2; return 1; }
-  sid="$(_wb_registry_sid_for_job "$job")" || sid="$job"
+  local session="$1" wt="$2" file="$3" out job sid running=""
+  if [ "${6:-}" = reuse ]; then
+    _wb_registry_reload
+    running="$(_wb_task_bg_jobs "$file" | head -n1)"
+  fi
+  if [ -n "$running" ]; then
+    job="${running%%$'\t'*}"; sid="${running#*$'\t'}"
+    echo "wb new: $session already has a background agent ($job); not starting another" >&2
+  else
+    wb_claude_args "${5:-}" "${4:-}"
+    out="$(cd "$wt" && claude --bg -n "$session" "${WB_CLAUDE_ARGS[@]}" 2>&1)" || { printf '%s\n' "$out" >&2; return 1; }
+    job="$(sed -n 's/^backgrounded · \([^ ]*\) ·.*/\1/p' <<< "$out" | head -n1)"
+    [ -n "$job" ] || { echo "wb new: couldn't read the session id from claude --bg:" >&2; printf '%s\n' "$out" >&2; return 1; }
+    sid="$(_wb_registry_sid_for_job "$job")" || sid="$job"
+  fi
   wb_lock_acquire "$file" || return 75
   wb_task_set_primary "$file" "$sid"
   wb_lock_release "$file"
@@ -249,9 +261,9 @@ cmd_new() {
     wb_lock_release "$WB_TASK"
     wb_pickup_mark "$(wb_task_stem "$WB_TASK")" start
     _wb_start_bg "$WB_SESSION" "$repo_dir/$(wb_task_get "$WB_TASK" worktree)" "$WB_TASK" \
-      "Pick up this task from its /handoff checkpoint."
+      "Pick up this task from its /handoff checkpoint." "" reuse
   elif [ "$bg" = 1 ]; then
-    _wb_start_bg "$WB_SESSION" "$repo_dir/$(wb_task_get "$WB_TASK" worktree)" "$WB_TASK"
+    _wb_start_bg "$WB_SESSION" "$repo_dir/$(wb_task_get "$WB_TASK" worktree)" "$WB_TASK" "" "" reuse
   else
     tmux_focus "$WB_SESSION"
   fi
