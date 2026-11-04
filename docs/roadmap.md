@@ -22,10 +22,10 @@ Rule: an alternative doesn't count as tested until it has a verdict in `docs/wb-
 
 ## Next goal
 
-Set 2026-11-04, once PR #2 is open. Progress as of 2026-11-04:
+Set 2026-11-04, once PR #2 is open. **Complete** as of 2026-11-04; the goal after it is coordinators, starting from a brainstorm.
 
 1. Work through the open items in `docs/wb-mac/follow-ups.md`. **Done** (PRs #6 and #7). What's left there is assumptions to watch and the cross-model reviewer, which needs a newer Node.
-2. Set up GitHub across the personal repos. `gh` is now logged in on the Mac with a PAT. **Open.**
+2. Set up GitHub across the personal repos. **Done.** `gh` is logged in on the Mac with a PAT, and ct-events, learning-os, stock-hub and li-serve are pushed as private repos.
 3. Delete the old throwaway claude.ai pages: the two wake-up tests and the review's /decide page. **Done.**
 4. Check TypeScript in nvim: `ts_ls` attaches and `K` hover works. **Done** (PR #4, which also applies the LSP server configs that mason-lspconfig v2 had stopped applying).
 5. A Claude Code status line on the Mac matching the work repo's. At a minimum it shows context used, the weekly and 5-hour usage limits, and the worktree and wb task of the session. **Done** (PR #5).
@@ -34,8 +34,8 @@ Set 2026-11-04, once PR #2 is open. Progress as of 2026-11-04:
 
 | Piece | What it is | Status | Where it lives |
 |---|---|---|---|
-| Mac picker with native status | The `wb` picker and `wb new` on `prefix+a`, carved out of wb. Status comes from Claude Code's session data, background sessions are rows, and there is a local `~/tasks` store. | Built and reviewed; in PR #2 (`feat/mac-picker-native-status` into `development`); verdicts open | `docs/plans/2026-10-26-0035-feat-mac-picker-native-status-plan.md`, `docs/wb-mac/comparisons.md`, `docs/wb-mac/follow-ups.md` |
-| `/handoff` and `/decide` | One `/handoff` checkpoints and restarts the session clean, hands work to a live task by messaging, or starts a seeded background task. One `/decide` asks a batch of questions in an nvim buffer or on a claude.ai page and records the answers. | Built and reviewed; in PR #2; verdicts open | `docs/plans/2026-10-30-1353-feat-wb-handoff-and-decide-plan.md`, `docs/wb-mac/comparisons.md` sections 6–10 |
+| Mac picker with native status | The `wb` picker and `wb new` on `prefix+a`, carved out of wb. Status comes from Claude Code's session data, background sessions are rows, and there is a local `~/tasks` store. | Merged (PR #2); verdicts open | `docs/plans/2026-10-26-0035-feat-mac-picker-native-status-plan.md`, `docs/wb-mac/comparisons.md`, `docs/wb-mac/follow-ups.md` |
+| `/handoff` and `/decide` | One `/handoff` checkpoints and restarts the session clean, hands work to a live task by messaging, or starts a seeded background task. One `/decide` asks a batch of questions in an nvim buffer or on a claude.ai page and records the answers. | Merged (PR #2); verdicts open | `docs/plans/2026-10-30-1353-feat-wb-handoff-and-decide-plan.md`, `docs/wb-mac/comparisons.md` sections 6–10 |
 | Automatic checkpoints | Hooks write draft handoffs into the task record on compact and at the end of a session. | Idea, partly absorbed: `/handoff` already replaces `/wb-save` and `/wb-resume`, and the pick-up hook loads a checkpoint after any `/clear` | Would call the same `wb checkpoint` |
 | Messaging and family coordinators | One coordinator session per family dispatches two or three workers. | Idea; messaging itself is in use for `/handoff <task>` | Builds on background rows from the picker |
 | Realms | The git remote decides which task store a record goes to, and a guard blocks writes across that line. | Idea | Most likely lands with the migration |
@@ -65,7 +65,6 @@ Dependencies, in short:
 
 ## Open threads
 
-- Review follow-ups for the Mac picker, none of them blocking, are listed in `docs/wb-mac/follow-ups.md`.
-- `wb new` puts worktrees in `<repo>/.worktrees/`, which nothing ignores on the Mac yet, so they show as untracked in the main checkout. A global git ignore entry would cover every repo.
-- Which of automatic checkpoints, coordinators and realms gets tried on the Mac next.
+- `docs/wb-mac/follow-ups.md` now holds only assumptions to watch and the cross-model reviewer, which needs a newer Node.
+- Coordinators get tried on the Mac next. Automatic checkpoints and realms wait.
 - The two-week use of `/handoff` and `/decide` that the migration decision waits on starts once this branch is in daily use.
