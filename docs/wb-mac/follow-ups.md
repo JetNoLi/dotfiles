@@ -9,17 +9,6 @@ Last updated 2026-11-04. Three code reviews of `feat/mac-picker-native-status` f
 - `_ac_input_pending` matches the exact bytes `capture-pane -e` prints around Claude's input line, tested only against synthetic screens. A change to Claude's UI fails safe, but turns auto-clear off without a word.
 - The `wb_repo_list` cache is lost inside subshells. This makes things slower but not wrong.
 
-## /decide outside a wb task
-
-The first real run of `/decide` was from a session that isn't a wb task.
-
-- `decide-path` and `decide-open` both need a task, so the page had to be made by hand and nothing marked it as needing Jet. A way to name an answer file without a task would let it run anywhere.
-- The skill makes the page under `$WB_STATE_DIR/decide/`, but the Artifact tool only publishes from the working directory or the session scratchpad, so the files had to be copied first. Section 4 of the skill should make them in one of those.
-- The comment watch's auto-reply said the answers were being recorded before anything was. The skill already warns about it; the wording on the page could too.
-
-## Test gaps
-
-
 ## Tooling gaps
 
 - No second AI model has reviewed this code. No cross-model reviewer is installed, and Node 18 is older than the version acpx needs.
