@@ -297,9 +297,13 @@ wb_family_tree() {
 # --- Claude transcripts ---------------------------------------------------------
 # Claude Code keeps one .jsonl per conversation under
 # ~/.claude/projects/<cwd with every non-alphanumeric replaced by "-">.
+# Claude replaces UTF-16 code units: one dash for "é", two for an emoji
+# (probed 2026-11-04), so the count is per code point, doubled above U+FFFF.
 
 wb_transcript_dir() {
-  printf '%s/%s\n' "$CLAUDE_PROJECTS_DIR" "$(printf '%s' "$1" | LC_ALL=C tr -c 'A-Za-z0-9' '-')"
+  printf '%s/%s\n' "$CLAUDE_PROJECTS_DIR" "$(jq -nr --arg p "$1" '$p | explode | map(
+    if (. >= 48 and . <= 57) or (. >= 65 and . <= 90) or (. >= 97 and . <= 122) then [.]
+    elif . > 65535 then [45, 45] else [45] end) | add // [] | implode')"
 }
 
 # wb_transcripts <worktree_abs> — "<id>\t<mtime>" per conversation, newest

@@ -178,6 +178,8 @@ assert_eq "/ and . become -" "$CLAUDE_PROJECTS_DIR/-Users-me-dotfiles--worktrees
   "$(wb_transcript_dir /Users/me/dotfiles/.worktrees/fix)"
 assert_eq "_ and spaces become - too" "$CLAUDE_PROJECTS_DIR/-Users-me-Desktop-My-Repo--worktrees-fix-login" \
   "$(wb_transcript_dir "/Users/me/Desktop/My Repo/.worktrees/fix_login")"
+assert_eq "é is one dash and an emoji two, as Claude names the folder" "$CLAUDE_PROJECTS_DIR/-tmp-caf---x" \
+  "$(wb_transcript_dir "/tmp/café😀x")"
 
 # wb_task_set_primary
 pf="$(wb_task_seed proj primary-test .worktrees/primary-test /code/proj)"
