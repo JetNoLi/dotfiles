@@ -1,6 +1,6 @@
 # Dotfiles and AI workflow roadmap
 
-Last updated 2026-10-30. This is the living record of where the dotfiles and the AI workflow are heading. Plans and verdicts live in the files it links to; this page says how they fit together.
+Last updated 2026-11-04. This is the living record of where the dotfiles and the AI workflow are heading. Plans and verdicts live in the files it links to; this page says how they fit together.
 
 ## End state
 
@@ -20,12 +20,22 @@ Until then, new code stays easy to port:
 
 Rule: an alternative doesn't count as tested until it has a verdict in `docs/wb-mac/comparisons.md`.
 
+## Next goal
+
+Set 2026-11-04, once PR #2 is open:
+
+1. Work through the open items in `docs/wb-mac/follow-ups.md`.
+2. Set up GitHub across the personal repos. `gh` is now logged in on the Mac with a PAT.
+3. Delete the old throwaway claude.ai pages: the two wake-up tests and the review's /decide page.
+4. Check TypeScript in nvim: `ts_ls` attaches and `K` hover works.
+5. A Claude Code status line on the Mac matching the work repo's. At a minimum it shows context used, the weekly and 5-hour usage limits, and the worktree and wb task of the session.
+
 ## Pieces
 
 | Piece | What it is | Status | Where it lives |
 |---|---|---|---|
-| Mac picker with native status | The `wb` picker and `wb new` on `prefix+a`, carved out of wb. Status comes from Claude Code's session data, background sessions are rows, and there is a local `~/tasks` store. | Built and reviewed on `feat/mac-picker-native-status` (local, not pushed); verdicts open | `docs/plans/2026-10-26-0035-feat-mac-picker-native-status-plan.md`, `docs/wb-mac/comparisons.md`, `docs/wb-mac/follow-ups.md` |
-| `/handoff` and `/decide` | One `/handoff` checkpoints and restarts the session clean, hands work to a live task by messaging, or starts a seeded background task. One `/decide` asks a batch of questions in an nvim buffer or on a claude.ai page and records the answers. | Built on `feat/mac-picker-native-status` (local, not pushed); verdicts open | `docs/plans/2026-10-30-1353-feat-wb-handoff-and-decide-plan.md`, `docs/wb-mac/comparisons.md` sections 6–10 |
+| Mac picker with native status | The `wb` picker and `wb new` on `prefix+a`, carved out of wb. Status comes from Claude Code's session data, background sessions are rows, and there is a local `~/tasks` store. | Built and reviewed; in PR #2 (`feat/mac-picker-native-status` into `development`); verdicts open | `docs/plans/2026-10-26-0035-feat-mac-picker-native-status-plan.md`, `docs/wb-mac/comparisons.md`, `docs/wb-mac/follow-ups.md` |
+| `/handoff` and `/decide` | One `/handoff` checkpoints and restarts the session clean, hands work to a live task by messaging, or starts a seeded background task. One `/decide` asks a batch of questions in an nvim buffer or on a claude.ai page and records the answers. | Built and reviewed; in PR #2; verdicts open | `docs/plans/2026-10-30-1353-feat-wb-handoff-and-decide-plan.md`, `docs/wb-mac/comparisons.md` sections 6–10 |
 | Automatic checkpoints | Hooks write draft handoffs into the task record on compact and at the end of a session. | Idea, partly absorbed: `/handoff` already replaces `/wb-save` and `/wb-resume`, and the pick-up hook loads a checkpoint after any `/clear` | Would call the same `wb checkpoint` |
 | Messaging and family coordinators | One coordinator session per family dispatches two or three workers. | Idea; messaging itself is in use for `/handoff <task>` | Builds on background rows from the picker |
 | Realms | The git remote decides which task store a record goes to, and a guard blocks writes across that line. | Idea | Most likely lands with the migration |
