@@ -36,6 +36,34 @@ assert "the killed holder's lock is still on disk" 'pid' "$(ls "$(_wb_lock_path 
 "$BASH" -c "source '$lib'; wb_lock_acquire '$task' 0"; code=$?
 assert_eq "a lock held by a dead pid is taken over at once" 0 "$code"
 
+lockdir="$(_wb_lock_path "$task")"
+old=$(( $(date +%s) - 60 ))
+sleep 0 & dead=$!; wait "$dead"
+rm -rf "$lockdir"; mkdir "$lockdir"
+"$BASH" -c "source '$lib'; wb_lock_acquire '$task' 0" 2>/dev/null; code=$?
+assert_eq "a fresh lock with no pid file yet is left to its writer" 75 "$code"
+touch_epoch "$old" "$lockdir"
+"$BASH" -c "source '$lib'; wb_lock_acquire '$task' 0"; code=$?
+assert_eq "an old lock with no pid file is taken over" 0 "$code"
+
+rm -rf "$lockdir"; mkdir "$lockdir" "$lockdir.takeover"; echo "$dead" > "$lockdir/pid"
+"$BASH" -c "source '$lib'; wb_lock_acquire '$task' 0" 2>/dev/null; code=$?
+assert_eq "a dead holder's lock isn't removed while another writer is taking it over" 75 "$code"
+assert_eq "and the lock is untouched" "$dead" "$(cat "$lockdir/pid")"
+touch_epoch "$old" "$lockdir.takeover"
+"$BASH" -c "source '$lib'; wb_lock_acquire '$task' 0"; code=$?
+assert_eq "a takeover left behind by a dead writer is cleared" 0 "$code"
+
+# Six writers racing to take over the same dead holder's lock: one at a time.
+rm -rf "$lockdir" "$lockdir.takeover"; mkdir "$lockdir"; echo "$dead" > "$lockdir/pid"
+: > "$T/lock.log"
+for _ in 1 2 3 4 5 6; do
+  "$BASH" -c "source '$lib'; wb_lock_acquire '$task' 10 || exit 1
+    echo in >> '$T/lock.log'; sleep 0.2; echo out >> '$T/lock.log'; wb_lock_release '$task'" &
+done
+wait
+assert_eq "racing writers never hold the lock together" "$(printf 'in\nout\n%.0s' 1 2 3 4 5 6)" "$(cat "$T/lock.log")"
+
 # --- watchdog -----------------------------------------------------------------
 start=$SECONDS
 wb_watchdog 1 sleep 5; code=$?
