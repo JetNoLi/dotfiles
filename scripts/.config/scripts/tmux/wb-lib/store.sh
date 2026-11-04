@@ -251,7 +251,9 @@ wb_task_pickup() {
 # @primary in claude_sessions, keeping the others. The caller holds the lock.
 wb_task_set_primary() {
   local prev
-  prev="$(wb_task_get "$1" claude_sessions | tr ',' '\n' | sed 's/@primary$//' | grep . | paste -sd, -)" || true
+  # The session's own older entry goes, so a repeated restart record doesn't grow.
+  prev="$(wb_task_get "$1" claude_sessions | tr ',' '\n' | sed 's/@primary$//' \
+    | awk -F@ -v sid="$2" '$1 != "" && $1 != sid' | paste -sd, -)" || true
   wb_task_set "$1" claude_sessions "$2@$(TZ=UTC date +%Y-%m-%dT%H:%M:%SZ)@primary${prev:+,$prev}"
 }
 
@@ -265,6 +267,20 @@ wb_session_task_file() {
   slug="$(tmux show -t "=$1:" -v @wb_slug 2>/dev/null || true)"
   [ -n "$repo" ] && [ -n "$slug" ] || return 1
   wb_task_file "$repo" "$(wb_sanitize "$slug")"
+}
+
+# wb_task_session <task_file> — the live tmux session working on the task:
+# the one named for its stem, else one whose record is the task. A session
+# Jet renamed keeps its @task, so it is still found.
+wb_task_session() {
+  local stem s f
+  stem="$(wb_task_stem "$1")"
+  if tmux has-session -t "=$stem" 2>/dev/null; then echo "$stem"; return 0; fi
+  while IFS= read -r s; do
+    f="$(wb_session_task_file "$s" 2>/dev/null)" || continue
+    [ "$(basename -- "$f")" = "$(basename -- "$1")" ] && { echo "$s"; return 0; }
+  done < <(tmux list-sessions -F '#S' 2>/dev/null)
+  return 1
 }
 
 # --- families -----------------------------------------------------------------
@@ -295,9 +311,13 @@ wb_family_tree() {
 # --- Claude transcripts ---------------------------------------------------------
 # Claude Code keeps one .jsonl per conversation under
 # ~/.claude/projects/<cwd with every non-alphanumeric replaced by "-">.
+# Claude replaces UTF-16 code units: one dash for "é", two for an emoji
+# (probed 2026-11-04), so the count is per code point, doubled above U+FFFF.
 
 wb_transcript_dir() {
-  printf '%s/%s\n' "$CLAUDE_PROJECTS_DIR" "$(printf '%s' "$1" | LC_ALL=C tr -c 'A-Za-z0-9' '-')"
+  printf '%s/%s\n' "$CLAUDE_PROJECTS_DIR" "$(jq -nr --arg p "$1" '$p | explode | map(
+    if (. >= 48 and . <= 57) or (. >= 65 and . <= 90) or (. >= 97 and . <= 122) then [.]
+    elif . > 65535 then [45, 45] else [45] end) | add // [] | implode')"
 }
 
 # wb_transcripts <worktree_abs> — "<id>\t<mtime>" per conversation, newest

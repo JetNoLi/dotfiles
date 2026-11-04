@@ -73,15 +73,15 @@ cmd_decide_open() {
 # the file's path. /decide runs it as a background command, so Jet can
 # take as long as he likes and the session is re-invoked when it exits.
 cmd_decide_buffer() {
-  local file target pane stem editor
+  local file target pane stem editor session
   _wb_entry_task decide-buffer "$@" || return 1
   file="${WB_ARGS[0]:-}"
   [ -n "$file" ] && [ -f "$file" ] || { echo "usage: wb decide-buffer <answer file> (the file must exist)" >&2; return 1; }
   stem="$(wb_task_stem "$WB_TASK")"
   if [ -n "${WB_LOOKUP_PANE:-}" ] && _wb_pane_exists "$WB_LOOKUP_PANE"; then
     target="$WB_LOOKUP_PANE"
-  elif tmux has-session -t "=$stem" 2>/dev/null; then
-    target="=$stem:"
+  elif session="$(wb_task_session "$WB_TASK")"; then
+    target="=$session:"
   else
     echo "wb decide-buffer: $stem has no tmux session to open the buffer in" >&2; return 1
   fi

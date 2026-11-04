@@ -68,5 +68,13 @@ out="$(WB_GH_TIMEOUT=1 wb down dotfiles--hang-task 2>&1)"; code=$?
 assert_eq "wb down with gh hanging still finishes" 0 "$code"
 assert "it finishes through the watchdog" '^[1-4]$' "$(( SECONDS - start ))"
 assert_eq "and leaves the status unchanged" doing "$(wb_task_get "$TASKS_DIR/dotfiles--hang-task.md" status)"
+fake_gh 'echo "[]"'
+
+# --- a session Jet renamed ---------------------------------------------------------------------
+wb new dotfiles renamed >/dev/null 2>&1
+tmux rename-session -t =dotfiles--renamed my-name
+out="$(wb down dotfiles--renamed 2>&1)"; code=$?
+assert_eq "wb down by stem finds a renamed session" 0 "$code"
+assert_eq "and closes it" "" "$(tmux list-sessions -F '#S' 2>/dev/null | grep -x my-name)"
 
 finish

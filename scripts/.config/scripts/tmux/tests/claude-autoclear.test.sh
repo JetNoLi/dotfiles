@@ -94,6 +94,14 @@ echo '{"session_id":"old-sid"}' | TMUX_PANE="$P" "$NOTIFY" start
 assert_eq "a prompt sent before the Stop cancels the request" no "$(marker)"
 assert "and says why in the log" 'cancelled: a prompt was sent' "$(tail -n1 "$LOG")"
 
+# A second Claude session on the same task: its prompt isn't the turn that asked.
+wb clear-request --task proj--ac >/dev/null
+sed -i '' 's/^sid=.*/sid=old-sid/' "$WB_STATE_DIR/clear/proj--ac"
+echo '{"session_id":"second-sid"}' | TMUX_PANE="$P" "$NOTIFY" start
+assert_eq "a prompt in another session on the task leaves the request" yes "$(marker)"
+echo '{"session_id":"old-sid"}' | TMUX_PANE="$P" "$NOTIFY" start
+assert_eq "a prompt in the session that asked still cancels it" no "$(marker)"
+
 # A background session has no pane, so its prompt reaches the hook without
 # $TMUX_PANE; it still cancels.
 mkdir -p "$T/code/proj/.worktrees/bgac"

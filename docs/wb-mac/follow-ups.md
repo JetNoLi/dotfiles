@@ -1,18 +1,6 @@
 # Mac wb follow-ups
 
-Last updated 2026-11-01. Three code reviews of `feat/mac-picker-native-status` found these items. None of them blocked the branch, and none is fixed yet. When one is fixed, delete it from this page.
-
-## Bugs and races
-
-- **Lock takeover.** The mkdir lock in `wb-lib/compat.sh` (lines 23-36) has two edge cases. Two processes can both take over a stale lock at the same moment. A lock directory left behind with no pid file is never taken over, so every write waits until it times out.
-- **`wb new --bg` starts the agent before taking the lock.** If the run fails after the start and is retried, a second background agent can start.
-- **Empty fields shift columns.** `IFS=$'\t' read` merges consecutive tabs, so an empty field moves every field after it one place left. This affects `wb-lib/rows.sh:114` and `wb-lib/lifecycle.sh:263`, and it shows up as background sessions with no name being misread.
-- **Renamed sessions are lost.** After a session is renamed, `wb_bg_attach` and `_wb_resolve` can't find it, so `wb down` and Enter on a background row fail.
-- **Non-ASCII paths miss their transcripts.** Claude turns each byte of a multibyte character into a dash, and `wb_transcript_dir` turns each character into one, so the two folder names differ.
-- **Picker `wb done` ignores its own errors.** `cmd_done` runs under `||` on the picker path, so `set -e` is off inside it. A failed task-file write still reports success.
-- **Stale "still running" message.** It can appear after the job has already exited.
-- **One task's sessions cancel each other's clear.** A prompt in a second Claude session mapped to the same task runs `_clear-cancel` and drops the first session's pending /handoff clear. It fails safe: no restart, and the checkpoint stays.
-- **`wb_task_set_primary` keeps duplicates.** Making a session @primary that is already in `claude_sessions` leaves its old entry in the list as well, so a repeated restart record grows.
+Last updated 2026-11-04. Three code reviews of `feat/mac-picker-native-status` found these items. None of them blocked the branch. Its bugs and races were fixed on 2026-11-04. When an item is fixed, delete it from this page.
 
 ## Fragile assumptions
 
@@ -50,7 +38,3 @@ The first real run of `/decide` was from a session that isn't a wb task.
 
 - shellcheck isn't installed on the Mac, so `bash -n` is the only lint that has run.
 - No second AI model has reviewed this code. No cross-model reviewer is installed, and Node 18 is older than the version acpx needs.
-
-## Housekeeping
-
-- `gh` isn't authenticated, so `wb down` never moves a task to review. The check stays in place.

@@ -15,15 +15,41 @@ _wb_lock_path() {
   printf '%s/locks/%s.lock\n' "$WB_STATE_DIR" "$(basename -- "$1")"
 }
 
+WB_LOCK_ORPHAN_AGE="${WB_LOCK_ORPHAN_AGE:-10}"   # seconds before a pid-less lock counts as dead
+
+# _wb_lock_stale <lock_dir> <holder> — the holder is dead, or there is none
+# and the directory is old: a writer killed between its mkdir and writing
+# the pid file leaves one behind.
+_wb_lock_stale() {
+  local mtime
+  if [ -n "$2" ]; then
+    ! kill -0 "$2" 2>/dev/null
+  else
+    mtime="$(wb_mtime "$1" 2>/dev/null)" || return 1
+    [ $(( $(date +%s) - mtime )) -ge "$WB_LOCK_ORPHAN_AGE" ]
+  fi
+}
+
 # wb_lock_acquire <task_file> [wait_seconds] — 0 once held, 75 on timeout.
+# A stale lock is removed only under <lock>.takeover, after checking again
+# that it still has the same holder, so two writers taking over at once
+# can't each remove the lock the other has just taken.
 wb_lock_acquire() {
   local lock waited=0 holder wait="${2:-$WB_LOCK_WAIT}"
   lock="$(_wb_lock_path "$1")"
   mkdir -p "${lock%/*}" || return 75
   while ! mkdir "$lock" 2>/dev/null; do
     holder="$(cat "$lock/pid" 2>/dev/null)"
-    if [ -n "$holder" ] && ! kill -0 "$holder" 2>/dev/null; then
-      rm -rf "$lock"
+    if _wb_lock_stale "$lock" "$holder" && mkdir "$lock.takeover" 2>/dev/null; then
+      if [ "$(cat "$lock/pid" 2>/dev/null)" = "$holder" ] && _wb_lock_stale "$lock" "$holder"; then
+        rm -rf "$lock"
+      fi
+      rmdir "$lock.takeover"
+      continue
+    fi
+    # A takeover whose writer died mid-way is cleared the same way.
+    if [ -d "$lock.takeover" ] && _wb_lock_stale "$lock.takeover" ""; then
+      rmdir "$lock.takeover" 2>/dev/null
       continue
     fi
     if [ "$waited" -ge $(( wait * 10 )) ]; then

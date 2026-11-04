@@ -112,7 +112,6 @@ _wb_open_task() {
     case "$preset" in .worktrees/?*) wt_slug="${preset#.worktrees/}" ;; esac
   fi
   wt_rel=".worktrees/$wt_slug"; wt="$repo_dir/$wt_rel"
-  WB_SESSION="$repo--$(wb_sanitize "$wt_slug")"
 
   [ -d "$wt" ] || _wb_add_worktree "$repo_dir" "$branch" "$wt" || return 1
   wb_bootstrap "$repo_dir" "$wt" || echo "wb new: warning: bootstrap into $wt failed (continuing)" >&2
@@ -128,6 +127,8 @@ _wb_open_task() {
   [ -n "$(wb_task_get "$file" repo_path)" ] || wb_task_set "$file" repo_path "$repo_dir"
   wb_lock_release "$file"
 
+  # A session Jet renamed is reused rather than a second one made.
+  WB_SESSION="$(wb_task_session "$file")" || WB_SESSION="$repo--$(wb_sanitize "$wt_slug")"
   tmux has-session -t "=$WB_SESSION" 2>/dev/null || is_new=1
   tmux_ensure_session "$WB_SESSION" "$wt"
   tmux set-option -t "=$WB_SESSION:" @wb_repo "$repo" >/dev/null
@@ -177,17 +178,29 @@ wb_claude_pane_cmd() {
   printf '; exec "${SHELL:-/bin/sh}"\n'
 }
 
-# _wb_start_bg <session> <worktree> <task_file> [prompt] [permission_mode] —
-# start the agent as a background session (KTD6) and record its full session
-# id as @primary. A prompt starts it working at once (KTD12). `claude --bg`
-# prints a short id; attach and stop take that, the record keeps the full UUID.
+# _wb_start_bg <session> <worktree> <task_file> [prompt] [permission_mode]
+# [reuse] — start the agent as a background session (KTD6) and record its
+# full session id as @primary. A prompt starts it working at once (KTD12).
+# `claude --bg` prints a short id; attach and stop take that, the record
+# keeps the full UUID. With "reuse" (wb new), an agent the task already has
+# is recorded instead: a retry after a failure past the start (the lock
+# below, say) finds the one the first run started. A restart never reuses.
 _wb_start_bg() {
-  local session="$1" wt="$2" file="$3" out job sid
-  wb_claude_args "${5:-}" "${4:-}"
-  out="$(cd "$wt" && claude --bg -n "$session" "${WB_CLAUDE_ARGS[@]}" 2>&1)" || { printf '%s\n' "$out" >&2; return 1; }
-  job="$(sed -n 's/^backgrounded · \([^ ]*\) ·.*/\1/p' <<< "$out" | head -n1)"
-  [ -n "$job" ] || { echo "wb new: couldn't read the session id from claude --bg:" >&2; printf '%s\n' "$out" >&2; return 1; }
-  sid="$(_wb_registry_sid_for_job "$job")" || sid="$job"
+  local session="$1" wt="$2" file="$3" out job sid running=""
+  if [ "${6:-}" = reuse ]; then
+    _wb_registry_reload
+    running="$(_wb_task_bg_jobs "$file" | head -n1)"
+  fi
+  if [ -n "$running" ]; then
+    job="${running%%$'\t'*}"; sid="${running#*$'\t'}"
+    echo "wb new: $session already has a background agent ($job); not starting another" >&2
+  else
+    wb_claude_args "${5:-}" "${4:-}"
+    out="$(cd "$wt" && claude --bg -n "$session" "${WB_CLAUDE_ARGS[@]}" 2>&1)" || { printf '%s\n' "$out" >&2; return 1; }
+    job="$(sed -n 's/^backgrounded · \([^ ]*\) ·.*/\1/p' <<< "$out" | head -n1)"
+    [ -n "$job" ] || { echo "wb new: couldn't read the session id from claude --bg:" >&2; printf '%s\n' "$out" >&2; return 1; }
+    sid="$(_wb_registry_sid_for_job "$job")" || sid="$job"
+  fi
   wb_lock_acquire "$file" || return 75
   wb_task_set_primary "$file" "$sid"
   wb_lock_release "$file"
@@ -249,9 +262,9 @@ cmd_new() {
     wb_lock_release "$WB_TASK"
     wb_pickup_mark "$(wb_task_stem "$WB_TASK")" start
     _wb_start_bg "$WB_SESSION" "$repo_dir/$(wb_task_get "$WB_TASK" worktree)" "$WB_TASK" \
-      "Pick up this task from its /handoff checkpoint."
+      "Pick up this task from its /handoff checkpoint." "" reuse
   elif [ "$bg" = 1 ]; then
-    _wb_start_bg "$WB_SESSION" "$repo_dir/$(wb_task_get "$WB_TASK" worktree)" "$WB_TASK"
+    _wb_start_bg "$WB_SESSION" "$repo_dir/$(wb_task_get "$WB_TASK" worktree)" "$WB_TASK" "" "" reuse
   else
     tmux_focus "$WB_SESSION"
   fi
@@ -295,10 +308,13 @@ _wb_find_task() {
 # background session belonging to the task: named by its claude_sessions:,
 # or running in its worktree.
 _wb_task_bg_jobs() {
-  local wt sid job name cwd status attached ids
+  local wt sid job name cwd status attached ids line
+  local -a rec
   wt="$(wb_task_worktree_abs "$1" 2>/dev/null)" && wt="$(_wb_real_lower "$wt")"
   ids=",$(wb_task_get "$1" claude_sessions | tr ',' '\n' | sed 's/@.*//' | paste -sd, -),"
-  while IFS=$'\t' read -r sid job name cwd status attached; do
+  while IFS= read -r line; do
+    wb_tsv_split "$line" rec   # a nameless session leaves an empty field
+    sid="${rec[0]}" job="${rec[1]}" name="${rec[2]}" cwd="${rec[3]}" status="${rec[4]}" attached="${rec[5]:-}"
     if [[ "$ids" == *",$sid,"* ]] || { [ -n "$wt" ] && [ "$(_wb_real_lower "$cwd")" = "$wt" ]; }; then
       printf '%s\t%s\n' "$job" "$sid"
     fi
@@ -313,6 +329,8 @@ _wb_stop_bg() {
   while IFS=$'\t' read -r job sid; do
     if wb_watchdog 10 claude stop "$job" >/dev/null 2>&1 </dev/null; then
       last="$sid"
+    elif _wb_registry_reload; [ -z "${WB_REG_BY_JOB[$job]:-}" ]; then
+      last="$sid"   # it exited on its own between the listing and the stop
     else
       echo "wb: could not stop background session $job — it is still running" >&2
       failed=1
@@ -343,8 +361,7 @@ wb_bg_attach() {
   target="$(_wb_bg_attached_pane "$job")" && { tmux_goto_pane "$target"; return 0; }
 
   if wb_task_exists "$ref"; then
-    session="$(wb_task_stem "$ref")"
-    if tmux has-session -t "=$session" 2>/dev/null; then
+    if session="$(wb_task_session "$ref")"; then
       tmux list-windows -t "=$session:" -F '#{window_name}' | grep -qx agent \
         || tmux new-window -d -t "=$session:" -n agent -c "$(wb_task_worktree_abs "$ref")"
       tmux send-keys -t "=$session:agent" "claude attach $job" Enter
@@ -376,7 +393,7 @@ _wb_resolve() {
   else
     WB_TASK="$(wb_task_file_for_stem "$arg")"
     wb_task_exists "$WB_TASK" || { echo "wb $verb: '$arg' is no live session and no task" >&2; return 1; }
-    tmux has-session -t "=$arg" 2>/dev/null && WB_SESSION="$arg"
+    WB_SESSION="$(wb_task_session "$WB_TASK")" || WB_SESSION=""
   fi
   return 0
 }
@@ -502,11 +519,16 @@ cmd_done() {
   fi
   [ "$close" = 1 ] && [ -n "$session" ] && note="$note, session closed"
 
+  # Each write is checked: the picker runs this under ||, where set -e is off.
   wb_lock_acquire "$file" || return 75
-  wb_task_set "$file" status done
-  wb_task_set "$file" closed "$(date +%F)"
-  wb_task_set "$file" claude_sessions ""
-  wb_task_append_handoff "$file" "wb done" "$note."
+  if ! { wb_task_set "$file" status done \
+      && wb_task_set "$file" closed "$(date +%F)" \
+      && wb_task_set "$file" claude_sessions "" \
+      && wb_task_append_handoff "$file" "wb done" "$note."; }; then
+    wb_lock_release "$file"
+    echo "wb done: $note, but writing $file failed; it may not say done" >&2
+    return 1
+  fi
   rm -f "$(wb_needs_you_file "$(wb_task_stem "$file")")"
   wb_lock_release "$file"
   echo "wb done: $(wb_task_stem "$file") — $note, task done"
