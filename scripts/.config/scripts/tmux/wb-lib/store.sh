@@ -251,7 +251,9 @@ wb_task_pickup() {
 # @primary in claude_sessions, keeping the others. The caller holds the lock.
 wb_task_set_primary() {
   local prev
-  prev="$(wb_task_get "$1" claude_sessions | tr ',' '\n' | sed 's/@primary$//' | grep . | paste -sd, -)" || true
+  # The session's own older entry goes, so a repeated restart record doesn't grow.
+  prev="$(wb_task_get "$1" claude_sessions | tr ',' '\n' | sed 's/@primary$//' \
+    | awk -F@ -v sid="$2" '$1 != "" && $1 != sid' | paste -sd, -)" || true
   wb_task_set "$1" claude_sessions "$2@$(TZ=UTC date +%Y-%m-%dT%H:%M:%SZ)@primary${prev:+,$prev}"
 }
 

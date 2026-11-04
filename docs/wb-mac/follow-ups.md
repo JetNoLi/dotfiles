@@ -11,7 +11,6 @@ Last updated 2026-11-01. Three code reviews of `feat/mac-picker-native-status` f
 - **Picker `wb done` ignores its own errors.** `cmd_done` runs under `||` on the picker path, so `set -e` is off inside it. A failed task-file write still reports success.
 - **Stale "still running" message.** It can appear after the job has already exited.
 - **One task's sessions cancel each other's clear.** A prompt in a second Claude session mapped to the same task runs `_clear-cancel` and drops the first session's pending /handoff clear. It fails safe: no restart, and the checkpoint stays.
-- **`wb_task_set_primary` keeps duplicates.** Making a session @primary that is already in `claude_sessions` leaves its old entry in the list as well, so a repeated restart record grows.
 
 ## Fragile assumptions
 
