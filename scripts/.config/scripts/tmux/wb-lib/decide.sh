@@ -92,12 +92,22 @@ cmd_decide_open() {
   wb_lock_release "$WB_DECIDE_LOCK"
 }
 
+# _wb_agent_window <session> — the id of the session's window named exactly
+# agent, if it has one. Found by name, since base-index differs between
+# configs; the id also keeps a second window of that name from failing the split.
+_wb_agent_window() {
+  tmux list-windows -t "=$1:" -F '#{window_id} #{window_name}' 2>/dev/null \
+    | sed -n 's/^\(@[0-9]*\) agent$/\1/p' | head -n1
+}
+
 # cmd_decide_buffer <answer_file> [--task …] — open the file in nvim in a
 # split of the task's tmux session, wait for that pane to close, and print
-# the file's path. /decide runs it as a background command, so Jet can
-# take as long as he likes and the session is re-invoked when it exits.
+# the file's path. A caller with no pane of its own (a background agent)
+# gets the split in the agent window, where Jet is talking to it, else in the
+# session's current window. /decide runs this as a background command, so Jet
+# can take as long as he likes and the session is re-invoked when it exits.
 cmd_decide_buffer() {
-  local file target pane key editor session
+  local file target pane key editor session agent_window
   _wb_decide_target decide-buffer "$@" || return 1
   file="${WB_ARGS[0]:-}"
   [ -n "$file" ] && [ -f "$file" ] || { echo "usage: wb decide-buffer <answer file> (the file must exist)" >&2; return 1; }
@@ -105,14 +115,18 @@ cmd_decide_buffer() {
   if [ -n "${WB_LOOKUP_PANE:-}" ] && _wb_pane_exists "$WB_LOOKUP_PANE"; then
     target="$WB_LOOKUP_PANE"
   elif [ -n "$WB_TASK" ] && session="$(wb_task_session "$WB_TASK")"; then
-    target="=$session:"
+    agent_window="$(_wb_agent_window "$session")"
+    target="${agent_window:-=$session:}"
   else
     echo "wb decide-buffer: $key has no tmux session to open the buffer in" >&2; return 1
   fi
   editor="$(command -v nvim)" || { echo "wb decide-buffer: nvim isn't on the PATH" >&2; return 1; }
   # Locked across the split, so the surface is marked as soon as it exists.
+  # The agent window has remain-on-exit on, which the split would inherit: its
+  # pane would outlive nvim and this would wait forever. Unset in the same tmux
+  # command, which acts on the new pane, so nvim can't exit first.
   wb_lock_acquire "$WB_DECIDE_LOCK" || return 75
-  pane="$(tmux split-window -h -t "$target" -c "${file%/*}" -P -F '#{pane_id}' "$(printf '%q ' "$editor" "$file")")" \
+  pane="$(tmux split-window -h -t "$target" -c "${file%/*}" -P -F '#{pane_id}' "$(printf '%q ' "$editor" "$file")" \; set-option -p remain-on-exit off)" \
     || { wb_lock_release "$WB_DECIDE_LOCK"; echo "wb decide-buffer: tmux couldn't open the split" >&2; return 1; }
   wb_decide_open "$key" buffer "$file" "$pane"
   wb_lock_release "$WB_DECIDE_LOCK"

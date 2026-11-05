@@ -82,6 +82,44 @@ assert_eq "when the split fails it exits 1" 1 "$code"
 assert "and says so" "couldn't open the split" "$out"
 assert_eq "leaving the task not needing Jet" no "$([ -e "$WB_STATE_DIR/needs-you/proj--tiny" ] && echo yes || echo no)"
 
+# --- a background agent has no pane, so the window is found by name --------------------------
+# open_from_bg <stem> <pid> — run decide-buffer the way a background agent does
+# and leave it waiting on the split; the test waits on $waiter.
+open_from_bg() {
+  local stem="$1" pid="$2"
+  printf -- '---\nstatus: doing\n---\n# %s\n\n## Handoffs\n\n## Decisions\n' "$stem" > "$TASKS_DIR/$stem.md"
+  tmux set-option -t "=$stem:" @task "$TASKS_DIR/$stem.md" >/dev/null
+  fake_bg "$pid" idle "sid-$pid" "job-$pid" /code/proj "$stem"
+  bans="$T/$stem-answers.md"; echo "Q: ok?" > "$bans"
+  CLAUDE_PID="$pid" WB_TEST_NVIM_SECS=2 wb decide-buffer "$bans" > "$T/out" 2>&1 &
+  waiter=$!
+  wait_until 5 test -s "$WB_STATE_DIR/needs-you/$stem"
+}
+# panes_in <session> <window name> — how many panes the named window has.
+panes_in() {
+  tmux list-panes -a -F '#{session_name}/#{window_name}' | grep -cxF "$1/$2"
+}
+
+tmux new-session -d -s proj--win -x 160 -y 40 "sleep 300"
+wb_layout_session proj--win "$T" ""
+open_from_bg proj--win 616161
+assert_eq "with an agent window, the split opens there" 2 "$(panes_in proj--win agent)"
+assert_eq "and not in the session's current window" 1 "$(panes_in proj--win nvim)"
+# The agent window has remain-on-exit on; a split that inherits it never closes,
+# so this fails rather than hanging the run on `wait`.
+wait_until 8 sh -c "! kill -0 $waiter" || { kill "$waiter" 2>/dev/null; echo "FAIL - decide-buffer never returned"; fail=1; }
+wait "$waiter"; code=$?
+assert_eq "and it exits 0 once nvim closes" 0 "$code"
+assert_eq "the split is gone, not left as a dead pane" 1 "$(panes_in proj--win agent)"
+assert_eq "and the agent's own pane still stays on exit" on "$(tmux show-options -w -v -t "=proj--win:agent" remain-on-exit)"
+
+tmux new-session -d -s proj--noagent -x 160 -y 40 -n main "sleep 300"
+tmux new-window -d -t "=proj--noagent:" -n agent-logs "sleep 300"
+open_from_bg proj--noagent 626262
+assert_eq "with no agent window, the split opens in the current window" 2 "$(panes_in proj--noagent main)"
+assert_eq "and a window whose name only starts with agent doesn't count" 1 "$(panes_in proj--noagent agent-logs)"
+wait "$waiter"
+
 # --- outside a task ----------------------------------------------------------------------
 tmux new-session -d -s plain "sleep 300"
 Q="$(tmux list-panes -t "=plain:" -F '#{pane_id}')"
