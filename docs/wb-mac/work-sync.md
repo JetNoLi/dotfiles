@@ -4,9 +4,20 @@ Last updated 2026-11-06. Jet runs similar workflow work in the work dotfiles rep
 
 Flow is one-way by default: Mac changes can go to the work repo as they are. Anything coming back from the work repo is stripped of employer details first, because this repo is public.
 
+## Where to read the detail
+
+The repo is public, so all of these can be read from the work machine. Everything below is on `development`.
+
+- `docs/wb-mac/comparisons.md`: for each change, the Mac version, the work version and an open verdict. Its probe-findings sections record what was tested against Claude Code.
+- `docs/plans/2026-10-30-1353-feat-wb-handoff-and-decide-plan.md`: the requirements and design for `/handoff` and `/decide`.
+- `docs/plans/2026-10-26-0035-feat-mac-picker-native-status-plan.md`: the same for the picker.
+- **`/handoff`:** `claude/.claude/skills/handoff/SKILL.md`, backed by `scripts/.config/scripts/tmux/wb-lib/handoff.sh`, `claude-pickup-hook.sh` (loads a checkpoint on start or `/clear`) and `claude-autoclear.sh` (the clean restart).
+- **`/decide`:** `claude/.claude/skills/decide/` (the skill, the buffer shapes and the page spec), backed by `scripts/.config/scripts/tmux/wb-lib/decide.sh`.
+- `scripts/.config/scripts/tmux/claude-hooks-merge.sh`: how the hooks are wired into `~/.claude/settings.json`.
+
 ## Already described in comparisons.md
 
-Each section there has the Mac version, the work version, and an open verdict.
+Each section there has the Mac version, the work version, and an open verdict. Sections 6 to 10 are the handoff and decide changes.
 
 | Change | Section |
 |---|---|
