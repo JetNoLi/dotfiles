@@ -28,7 +28,7 @@ command -v jq >/dev/null || brew install jq
 
 # -t "$HOME" so the target doesn't depend on where this repo is cloned.
 # Stow stops on a conflict (e.g. a real ~/.gitconfig) rather than overwriting.
-stow -t "$HOME" zsh tmux ohmyposh scripts aerospace ghostty git claude
+stow -t "$HOME" zsh tmux ohmyposh scripts aerospace ghostty git claude nvim
 
 # wb's Claude Code hooks (agent status, pick-up), merged into its settings (not stowed).
 scripts/.config/scripts/tmux/claude-hooks-merge.sh
