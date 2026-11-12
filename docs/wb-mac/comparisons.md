@@ -100,6 +100,7 @@ Plan: `docs/plans/2026-10-30-1353-feat-wb-handoff-and-decide-plan.md`.
 - Wrong surface choices, the problem the work skills' routing tables kept hitting.
 - Whether two buffer shapes are enough, or a findings or interview shape is missed.
 - Items asked without options, pros and cons and a recommendation. Jet asked for all three on every item.
+- A candidate third shape from the work side (2026-11-12): an interview buffer of free-text questions, each saying why it is asked and the default if left blank. It worked well there on 5 Nov for reconstructing a morning from memory. It would sit alongside the rule that decision items carry options, pros and cons and a recommendation. Decide at the verdict.
 
 **Verdict:** open.
 

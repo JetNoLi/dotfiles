@@ -49,9 +49,9 @@ Each section there has the Mac version, the work version, and an open verdict. S
 ## In design: family coordinators
 
 `docs/plans/2026-11-06-1531-feat-wb-family-coordinators-plan.md` has the requirements. In short:
-- A coordinator session owns one record per family, covering cross-task decisions with their status, the tasks they affect, and where each is discussed.
-- Nothing counts as decided until a session asks Jet and Jet confirms.
+- A coordinator session alone writes the family decisions: cross-task decisions marked `proposed` or `in-force`, with the tasks they affect (`affects:`) and where each is discussed. Each worker writes its own status block with Phase and Holding lines.
+- Nothing is in force until a session asks Jet and Jet confirms.
 - Affected workers hold only the dependent work.
-- Sessions learn of confirmed decisions automatically.
+- Sessions learn of decisions in force automatically, and every reply says whether Jet is needed.
 
-Before that plan goes further, it needs one answer from the work side: does the work repo already have, or plan, something that overlaps it? If it does, bring back only how it behaves, not employer details.
+The work side answered the overlap question on 2026-11-12 (OQ1 in the plan). It has a coordinator habit and decision messaging, but no proposed or in-force status, and will adopt the plan's rules. The two sides share one plain-text shape. The work side builds the generated family page, the day-start overview by priority and the day-end refresh first; the Mac ports them at verdict time.
