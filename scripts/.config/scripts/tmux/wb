@@ -11,6 +11,8 @@
 #   wb done [--close] [session|task]
 #                          close: stop the agent, remove the worktree (--close: and the session)
 #   wb resume <task>       rebuild a parked task's session, warm resume typed in
+#   wb save [--auto]       snapshot every tmux session and the Claude conversation in each pane
+#   wb restore [snapshot]  after a restart: rebuild the saved sessions, resuming each conversation
 #   wb checkpoint          stdin → a checkpoint in this session's task (/handoff)
 #   wb handoff-to <task>   stdin → a "from <this task>" entry in another task
 #   wb decision <title>    stdin → that Decisions entry in this session's task
@@ -56,6 +58,8 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
     down)        shift; cmd_down "$@" ;;
     done)        shift; cmd_done "$@" ;;
     resume)      shift; cmd_resume "$@" ;;
+    save)        shift; cmd_save "$@" ;;
+    restore)     shift; cmd_restore "$@" ;;
     checkpoint)  shift; cmd_checkpoint "$@" ;;
     handoff-to)  shift; cmd_handoff_to "$@" ;;
     decision)    shift; cmd_decision "$@" ;;
