@@ -20,6 +20,7 @@ wb_status_icon() {
   case "$1" in
     needs-input) printf '!\tneeds you\n' ;;
     done)        printf '+\tfinished\n' ;;
+    waiting)     printf 'o\tdone\n' ;;
     working)     printf '*\tworking\n' ;;
     *)           printf -- '-\tidle\n' ;;
   esac
@@ -389,7 +390,9 @@ wb_picker_name_width() {
 # wb_format_for_display [<snapshot>] — prepend the padded, coloured display
 # string as a new field 1 (fields 2-14 stay addressable for fzf binds). Status
 # is the colour of REPO and NAME: needs you bold magenta, finished cyan,
-# working yellow, idle grey; a dormant row by its task status (doing yellow,
+# done green, working yellow, idle and no agent grey, as on the work
+# machine. Colour goes by label: finished and done share a rank, so the rank
+# can't choose it. A dormant row goes by its task status (doing yellow,
 # review cyan, paused grey). The session Jet is in is grey, tagged (here),
 # never counts as needing Jet, and its family is closed off by a separator
 # row (kind "sep") that every key ignores. Each repo name prints once per
@@ -417,7 +420,7 @@ wb_format_for_display() {
       }
       BEGIN {
         cur = ENVIRON["WB_PICKER_SESSION"]
-        mg = "\033[1;35m"; ye = "\033[33m"; dim = "\033[90m"; cy = "\033[36m"; rs = "\033[0m"
+        mg = "\033[1;35m"; gr = "\033[32m"; ye = "\033[33m"; dim = "\033[90m"; cy = "\033[36m"; rs = "\033[0m"
       }
       {
         n++
@@ -430,10 +433,11 @@ wb_format_for_display() {
         if (dorm) {
           w = lbl; sub(/ .*/, "", w)
           c = (w == "doing") ? ye : (w == "review") ? cy : dim
-        } else if ($4 == "0") c = mg   # by status rank (wb_status_rank), not label text
-        else if ($4 == "1")   c = cy
-        else if ($4 == "2")   c = ye
-        else                  c = dim
+        } else if (lbl == "needs you") c = mg
+        else if (lbl == "finished")   c = cy
+        else if (lbl == "done")       c = gr
+        else if (lbl == "working")    c = ye
+        else                          c = dim
         nest = $(12); lvl = 0
         if (nest ~ /^[ac][0-9]+$/) lvl = substr(nest, 2) + 0
         ind = ""; for (k = 1; k < lvl; k++) ind = ind "  "
