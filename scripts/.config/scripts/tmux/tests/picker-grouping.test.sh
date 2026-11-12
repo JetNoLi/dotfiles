@@ -10,7 +10,10 @@ export FZF_COLUMNS=200 WB_PICKER_NOW=1000000
 # row <repo> <label> <session> <visit> [status] [kind] [nest] [target]
 row() {
   local icon
-  case "${5:-idle}" in needs-input) icon='! needs you'; r=0 ;; working) icon='* working'; r=2 ;; *) icon='- idle'; r=3 ;; esac
+  case "${5:-idle}" in
+    needs-input) icon='! needs you'; r=0 ;; done) icon='+ finished'; r=1 ;; waiting) icon='o done'; r=1 ;;
+    working) icon='* working'; r=2 ;; none) icon='- no agent'; r=3 ;; *) icon='- idle'; r=3 ;;
+  esac
   printf '%s\t%s\t[main]\t%s\t%s\t%s\t%s\t/ref/%s\t%s\t1\t\t%s\t%s\n' \
     "$1" "$2" "$r" "$icon" "${8:-}" "$3" "$3" "${6:-task}" "${7:-}" "$4"
 }
@@ -40,6 +43,11 @@ before="$(blocks "$A1" "$A2" | order)"
 A1w="$(row alpha a-old s1 100 needs-input)"
 assert_eq "a status change doesn't move a row" "$before" "$(blocks "$A1w" "$A2" | order)"
 assert "the needs-you row turns bold magenta" $'\033\\[1;35ma-old' "$(blocks "$A1w" "$A2" | wb_order_blocks | wb_format_for_display | cut -f1)"
+colour_of() { blocks "$(row alpha a-old s1 100 "$1")" | wb_order_blocks | wb_format_for_display | cut -f1; }
+assert "a Claude at its prompt (done) is green" $'\033\\[32ma-old' "$(colour_of waiting)"
+assert "a finished long turn is cyan, though it shares done's rank" $'\033\\[36ma-old' "$(colour_of done)"
+assert "a working row is yellow" $'\033\\[33ma-old' "$(colour_of working)"
+assert "a session with no agent is grey" $'\033\\[90ma-old' "$(colour_of none)"
 
 # --- multi-byte names -----------------------------------------------------------------------
 long="$(printf 'caf\xc3\xa9 %.0s' {1..40})"

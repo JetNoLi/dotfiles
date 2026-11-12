@@ -4,7 +4,9 @@
 # claude-notify-hook.sh go on top, since the registry doesn't report a
 # finished long turn or an open nvim decision buffer (R6).
 #
-# Statuses: needs-input (needs you), done (finished), working, idle.
+# Statuses: needs-input (needs you), done (finished), waiting (done: at its
+# prompt, turn over), working, idle (no turn state known). The names match
+# the work machine's picker.
 # The registry and process table are read once per process; every picker
 # refresh is a fresh `wb render`, so that is once per refresh.
 
@@ -107,6 +109,7 @@ _wb_map_status() {
   case "$1" in
     waiting) REPLY=needs-input ;;
     busy)    REPLY=working ;;
+    idle)    REPLY=waiting ;;
     *)       REPLY=idle ;;
   esac
 }
@@ -114,7 +117,7 @@ _wb_map_status() {
 # wb_status_rank <status> — its sort rank in REPLY, most urgent first. Set
 # in REPLY, not printed, so the per-pane loop calls it without a subshell.
 wb_status_rank() {
-  case "$1" in needs-input) REPLY=0 ;; done) REPLY=1 ;; working) REPLY=2 ;; *) REPLY=3 ;; esac
+  case "$1" in needs-input) REPLY=0 ;; done|waiting) REPLY=1 ;; working) REPLY=2 ;; *) REPLY=3 ;; esac
 }
 
 # --- pane-scrape fallback ------------------------------------------------------------
@@ -138,7 +141,7 @@ _wb_scrape_status() {
   esac
   if _wb_pane_awaiting_input "$1"; then REPLY=needs-input
   elif [ "$3" = 1 ]; then REPLY=working
-  else REPLY=idle
+  else REPLY=waiting   # ✳ with no turn running: done, at its prompt
   fi
 }
 

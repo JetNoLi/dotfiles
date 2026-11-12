@@ -16,7 +16,7 @@ assert_eq "AE1: registry waiting gives needs you" needs-input "$(status_of "$pan
 registry "$pid1" busy "$pane1"
 assert_eq "registry busy gives working" working "$(status_of "$pane1")"
 registry "$pid1" idle "$pane1"
-assert_eq "registry idle gives idle" idle "$(status_of "$pane1")"
+assert_eq "registry idle (at its prompt) gives waiting, shown as done" waiting "$(status_of "$pane1")"
 registry "$pid1" frobbing "$pane1"
 assert_eq "an unknown registry status gives idle" idle "$(status_of "$pane1")"
 assert "the pane row carries the registry's session id" "sid-$pid1" "$(wb_claude_panes)"
@@ -99,6 +99,6 @@ jq '.name = "proj--dec"' "$CLAUDE_SESSIONS_DIR/434343.json" > "$T/r.json" && mv 
 assert_eq "a background row for that task needs you too" needs-input \
   "$(wb_bg_sessions | awk -F'\t' '$1 == "sid-dec" { print $5 }')"
 rm -f "$WB_STATE_DIR/needs-you/proj--dec"
-assert_eq "without the file the agent is idle again" idle "$(status_of "$dpane")"
+assert_eq "without the file the agent is back to waiting at its prompt" waiting "$(status_of "$dpane")"
 
 finish

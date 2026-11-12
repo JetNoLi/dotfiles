@@ -30,7 +30,7 @@ recap()  { jq -nc --arg t "$1" --arg ts "$2" '{type: "system", subtype: "away_su
 
 out="$(card "$target" "" "" "" 2>"$T/err")"; code=$?
 assert_eq "a live session's card succeeds" 0 "$code"
-assert "it leads with the registry state" '^idle ' "$(plain <<< "$out" | head -n1)"
+assert "it leads with the registry state, idle shown as done" '^done ' "$(plain <<< "$out" | head -n1)"
 assert "it shows the recap" 'Recap.*Fixed login on Safari and added a test\.' "$(plain <<< "$out" | tr '\n' ' ')"
 assert "it shows the last prompt" 'You asked.*Now add a test for the Safari case' "$(plain <<< "$out" | tr '\n' ' ')"
 assert "and the first line of the one before" 'before that: Fix the login bug' "$(plain <<< "$out")"
@@ -60,7 +60,7 @@ registry "$cpid" idle "$pane" interactive "" card-sid
 : > "$tr"
 out="$(card "$target" "" "" "")"; code=$?
 assert_eq "a session with no prompt yet exits 3, so the preview adds its own" 3 "$code"
-assert "it still prints the state" '^idle' "$(plain <<< "$out")"
+assert "it still prints the state" '^done' "$(plain <<< "$out")"
 
 tmux new-session -d -s plain "sleep 300"
 out="$(card "plain:$(tmux display -p -t =plain: '#{window_index}.#{pane_index}')" "" "" "")"; code=$?

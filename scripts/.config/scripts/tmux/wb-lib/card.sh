@@ -133,7 +133,7 @@ wb_card() {
       if [ $(( WB_CARD_NOW - at )) -ge "$WB_CARD_QUIET_AFTER" ]; then line=$'\033[1m'"quiet $(_wb_card_age "$at")"$'\033[0m \033[2m(busy, no activity)\033[0m'
       else line=$'\033[1mbusy\033[0m \033[2m'"$(_wb_card_age "$at")"$'\033[0m'; fi ;;
     waiting) line=$'\033[1mwaiting on you\033[0m \033[2m'"$(_wb_card_age "$at")"$'\033[0m' ;;
-    idle)    line=$'\033[1midle\033[0m \033[2m'"$(_wb_card_age "$at")"$'\033[0m' ;;
+    idle)    line=$'\033[1mdone\033[0m \033[2m'"$(_wb_card_age "$at")"$'\033[0m' ;;
     *)       line=$'\033[1mstate unknown\033[0m' ;;
   esac
   printf '%s\n' "$line"
