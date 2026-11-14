@@ -21,6 +21,12 @@ _wb_card_age() {
   fi
 }
 
+# _wb_card_width — WB_CARD_WIDTH from the preview's columns, at least 20.
+_wb_card_width() {
+  WB_CARD_WIDTH="${FZF_PREVIEW_COLUMNS:-${COLUMNS:-80}}"
+  [[ "$WB_CARD_WIDTH" =~ ^[0-9]+$ ]] && [ "$WB_CARD_WIDTH" -ge 20 ] || WB_CARD_WIDTH=80
+}
+
 _wb_card_section() {
   local n=$(( WB_CARD_WIDTH - ${#1} - 4 )) rule
   [ "$n" -gt 0 ] || n=0
@@ -106,8 +112,7 @@ _wb_card_questions() {
 wb_card() {
   local target="${1:-}" kind="${2:-}" job="${3:-}" ref="${4:-}" pane="" sid="" st="" st_at=0 task=""
   command -v jq >/dev/null 2>&1 || return 1
-  WB_CARD_WIDTH="${FZF_PREVIEW_COLUMNS:-${COLUMNS:-80}}"
-  [[ "$WB_CARD_WIDTH" =~ ^[0-9]+$ ]] && [ "$WB_CARD_WIDTH" -ge 20 ] || WB_CARD_WIDTH=80
+  _wb_card_width
   printf -v WB_CARD_NOW '%(%s)T' -1
 
   if [ "$kind" = bg ] && [ -n "$job" ]; then
@@ -189,4 +194,20 @@ wb_card() {
     _wb_card_section "Possibly open"; printf '%s\n' "${qq[@]}"
   fi
   return 0
+}
+
+# wb_family_card <ref> <waiting> — the Family section above the card on a
+# family's anchor row (R13): <waiting> is the row's field 14, set only there.
+# Prints nothing on any other row.
+wb_family_card() {
+  local ref="${1:-}" waiting="${2:-}" view title=Family
+  [ -n "$waiting" ] && wb_task_exists "$ref" || return 0
+  view="$(cmd_family --task "$ref" 2>/dev/null)" || return 0
+  _wb_card_width
+  [ "$waiting" = 0 ] || title="Family · $waiting to decide"
+  _wb_card_section "$title"
+  printf '%s\n' "$view" | awk '
+    NR == 1 { next }   # "Family of …": the section title says it
+    /^(== .* ==|-- .* --)$/ { printf "\033[1m%s\033[0m\n", $0; next }
+    { print }'
 }

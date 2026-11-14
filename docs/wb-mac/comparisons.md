@@ -143,6 +143,8 @@ On both machines, `ctrl+hjkl` stays with tmux and nvim.
 
 **What differs.** The root task's session coordinates its family and alone writes the family decisions, in the root's `## Family decisions` (`wb family-decision`). Each one is `status: proposed` until Jet confirms it when asked, then `in-force`, with `affects:`, `discussed in:` and `from:` lines. Each member keeps a `## Status` block (`wb status`) with Phase, Touching and Holding lines. A worker's cross-task proposal starts in its own Decisions with `affects:`, and waits on Jet until the coordinator takes it in. `wb family` prints the whole view. The `family` skill carries the rules. Messages go only to workers a decision unblocks. Plan: `docs/plans/2026-11-06-1531-feat-wb-family-coordinators-plan.md`.
 
+In the picker, the row anchoring a family (the root's, or the earliest-created child's when the root isn't live) is tagged "(N to decide)" and counts as needing Jet for `u`. That row's preview opens with the family view, and `f` on any member's row runs `wb family --edit`, which opens the family's files in nvim.
+
 **What to watch.**
 - A leaning treated as a decision, the failure this exists for.
 - Whether sessions keep their Holding line current, and whether the coordinator judges impact well from it.

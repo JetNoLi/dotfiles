@@ -1,9 +1,9 @@
 # picker.sh — the fzf picker (R2, R3): LIVE and DORMANT tabs, modal keys,
 # the preview, and the actions behind each key. Rows come from rows.sh.
 #
-# fzf sees the display string as field 1 and the row's own fields as 2-14,
+# fzf sees the display string as field 1 and the row's own fields as 2-15,
 # so in binds {7} is the target pane, {8} the session, {9} the ref, {10} the
-# kind and {12} the slug (a bg row's job id).
+# kind, {12} the slug (a bg row's job id) and {15} a family anchor's count.
 
 # --- tmux helpers -----------------------------------------------------------------
 
@@ -64,7 +64,7 @@ wb_status_line() {
   else
     local b=$'\033[1m' n0=$'\033[22m'
     hint="${b}j/k g/G${n0} move ${b}l/enter${n0} open ${b}h/q${n0} quit ${b}u${n0} needs-you ${b}n${n0} new ${b}p${n0} down"
-    hint+=" ${b}r${n0} rename ${b}b${n0} break ${b}ctrl-x${n0} done ${b}ctrl-r${n0} reload ${b}tab${n0} view ${b}/${n0} search"
+    hint+=" ${b}r${n0} rename ${b}b${n0} break ${b}f${n0} family ${b}ctrl-x${n0} done ${b}ctrl-r${n0} reload ${b}tab${n0} view ${b}/${n0} search"
   fi
   if [ "$view" = dormant ]; then
     label=DORMANT
@@ -207,12 +207,13 @@ _preview_label() {
   fi
 }
 
-# wb_preview_cmd — the context card for a row with a Claude session (a pane,
-# or a bg row's job id), else _preview. A card that exits 3 is only its
-# state lines, so _preview follows it. fzf runs this with $SHELL, so it
-# stays plain sh.
+# wb_preview_cmd — on a family's anchor row the Family section first, then
+# the context card for a row with a Claude session (a pane, or a bg row's
+# job id), else _preview. A card that exits 3 is only its state lines, so
+# _preview follows it. fzf runs this with $SHELL, so it stays plain sh.
 wb_preview_cmd() {
-  printf '%s' "c=\$('$SELF' _card {7} {10} {12} {9}); rc=\$?;" \
+  printf '%s' "f=; [ -z {15} ] || f=\$('$SELF' _family-card {9} {15}); [ -n \"\$f\" ] && printf '%s\\n\\n' \"\$f\";" \
+    " c=\$('$SELF' _card {7} {10} {12} {9}); rc=\$?;" \
     " [ -n \"\$c\" ] && printf '%s\\n\\n' \"\$c\";" \
     " if [ -z \"\$c\" ] || [ \"\$rc\" = 3 ]; then" \
     " '$SELF' _preview {7} {9}; fi"
@@ -354,6 +355,15 @@ _ctrl_x_confirm() {
   return 1
 }
 
+# _family_edit <ref> — `f`: open the row's family in nvim (wb family --edit),
+# the same files from any member's row.
+_family_edit() {
+  local ref="${1:-}"
+  wb_task_exists "$ref" || { _wb_hold "this row has no task, so no family to open"; return 0; }
+  cmd_family --edit --task "$ref" || _wb_hold "no family to open"
+  return 0
+}
+
 # _accept <selection> — what Enter does with the chosen row.
 _accept() {
   local -a f; wb_tsv_split "$1" f
@@ -395,7 +405,7 @@ picker() {
   fi
 
   # NORMAL mode disables search so unbound keys do nothing; i or / searches.
-  local navkeys='j,k,g,G,q,i,r,b,p,n,u,/'
+  local navkeys='j,k,g,G,q,i,r,b,p,n,u,f,/'
   local R="reload-sync(\"$SELF\" render \"$mode_file\" \"$view_file\")"
   local H="transform-header(\"$SELF\" _mode-header \"$mode_file\" \"$view_file\")"
   selection="$(printf '%s\n' "$rendered" | fzf --ansi --track \
@@ -420,6 +430,7 @@ picker() {
         --bind "r:execute(\"$SELF\" _rename {8} {10} {9})+$R+refresh-preview" \
         --bind "b:execute(\"$SELF\" _break-out {7} {10})+$R+refresh-preview" \
         --bind "p:execute(\"$SELF\" _down {8} {10} {9})+$R+refresh-preview" \
+        --bind "f:execute(\"$SELF\" _family-edit {9})+$R+refresh-preview" \
         --bind "n:become(\"$SELF\" _new)" \
         --bind "ctrl-x:become(\"$SELF\" _ctrl-x {10} {8} {7} {9})" \
         --bind "i:execute-silent(\"$SELF\" _set-mode \"$mode_file\" search)+unbind($navkeys)+enable-search+change-prompt(SEARCH )+$R+$H" \

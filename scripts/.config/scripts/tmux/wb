@@ -16,7 +16,7 @@
 #   wb checkpoint          stdin → a checkpoint in this session's task (/handoff)
 #   wb handoff-to <task>   stdin → a "from <this task>" entry in another task
 #   wb decision <title>    stdin → that Decisions entry in this session's task
-#   wb family [--waiting]  the family's decisions and status blocks, or how many wait on Jet
+#   wb family [--waiting|--edit]  the family's decisions and status blocks, how many wait on Jet, or open them in nvim
 #   wb family-decision <title>  stdin → that family decision in the root's task (the coordinator)
 #   wb status              stdin → this task's status block (Phase, Touching, Holding)
 #   wb pickup              the latest checkpoint and every entry since it
@@ -94,6 +94,8 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
     _preview)    shift; _preview "$@" ;;
     # fzf shows a preview's stderr, so the card's is dropped
     _card)       shift; wb_card "$@" 2>/dev/null ;;
+    _family-card) shift; wb_family_card "$@" 2>/dev/null ;;
+    _family-edit) shift; _family_edit "$@" ;;
     _preview-label) shift; _preview_label "$@" ;;
     *) printf "wb: unknown verb '%s' — try wb help\n" "$1" >&2; exit 2 ;;
   esac

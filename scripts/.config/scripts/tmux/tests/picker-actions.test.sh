@@ -60,4 +60,24 @@ assert_eq "with one session the picker gets one row (after its header)" 1 \
 assert_eq "and fzf has no flag that would accept it unseen" "" \
   "$(grep -xE -- '--select-1|-1|--exit-0|-0' "$T/fzf.args")"
 
+# --- f: the family in nvim (U6) ---------------------------------------------------------------
+printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$@" > "%s/nvim.args"\n' "$T" > "$T/bin/nvim"; chmod +x "$T/bin/nvim"
+mkt() { printf -- '---\nstatus: doing\nrepo: dotfiles\nparent: %s\n---\n# %s\n' "$2" "$1" > "$TASKS_DIR/$1.md"; }
+mkt dotfiles--froot ""; mkt dotfiles--fkid dotfiles--froot; mkt dotfiles--fkid2 dotfiles--froot
+"$BASH" "$WB" _family-edit "$TASKS_DIR/dotfiles--froot.md" < /dev/null > /dev/null 2>&1
+from_root="$(cat "$T/nvim.args")"; rm -f "$T/nvim.args"
+"$BASH" "$WB" _family-edit "$TASKS_DIR/dotfiles--fkid2.md" < /dev/null > /dev/null 2>&1
+assert_eq "f on a child row opens the same files as f on the root" "$from_root" "$(cat "$T/nvim.args")"
+assert "root first, then each member, one tab each" \
+  "^-p $TASKS_DIR/dotfiles--froot.md $TASKS_DIR/dotfiles--fkid.md $TASKS_DIR/dotfiles--fkid2.md -c " "$(xargs <<< "$from_root")"
+assert "each at its family decisions, else its status block" "Family decisions.*## Status" "$from_root"
+rm -f "$T/nvim.args"
+out="$("$BASH" "$WB" _family-edit "$TASKS_DIR/dotfiles--only-one.md" < /dev/null 2>&1)"
+assert "f on a task with no family says so" "isn't in a family" "$out"
+assert_eq "and opens nothing" "" "$(cat "$T/nvim.args" 2>/dev/null)"
+out="$("$BASH" "$WB" _family-edit "" < /dev/null 2>&1)"
+assert "f on a row with no task says so" 'no task, so no family' "$out"
+assert "f is bound to wb family --edit" '^f:execute\("[^"]*" _family-edit \{9\}\)' "$(grep '^f:' "$T/fzf.args")"
+assert "and unbound in search mode" '^/:.*unbind\([^)]*,f,' "$(grep '^/:' "$T/fzf.args")"
+
 finish
