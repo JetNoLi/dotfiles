@@ -25,4 +25,15 @@ merge_line="$(grep -n 'claude-hooks-merge.sh$' "$INSTALL" | cut -d: -f1)"
 assert "install.sh runs the hooks merge" '^[0-9]+$' "$merge_line"
 assert_eq "after stowing, so the hook scripts exist" yes "$([ "${merge_line:-0}" -gt "${stow_line:-0}" ] && echo yes || echo no)"
 
+# The family hook runs on every SessionStart and before each prompt (U5).
+s="$T/settings.json"
+echo '{}' > "$s"
+"$(dirname "$WB")/claude-hooks-merge.sh" "$s"; "$(dirname "$WB")/claude-hooks-merge.sh" "$s"
+for ev in SessionStart UserPromptSubmit; do
+  assert_eq "$ev gets the family hook once after two merges" 1 \
+    "$(jq --arg ev "$ev" '[.hooks[$ev][].hooks[].command | select(. == "~/.config/scripts/tmux/claude-family-hook.sh")] | length' "$s")"
+done
+assert_eq "the SessionStart family hook has no matcher, so every source runs it" null \
+  "$(jq '[.hooks.SessionStart[] | select(.hooks[].command | test("claude-family-hook"))][0].matcher' "$s")"
+
 finish
