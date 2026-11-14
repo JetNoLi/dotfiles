@@ -52,7 +52,7 @@ Each section there has the Mac version, the work version, and an open verdict. S
 - A coordinator session alone writes the family decisions: cross-task decisions marked `proposed` or `in-force`, with the tasks they affect (`affects:`) and where each is discussed. Each worker writes its own status block with Phase and Holding lines.
 - Nothing is in force until a session asks Jet and Jet confirms.
 - Affected workers hold only the dependent work.
-- Sessions learn of decisions in force automatically, and every reply says whether Jet is needed.
+- Sessions learn of decisions in force automatically, and every reply says whether Jet is needed. `scripts/.config/scripts/tmux/claude-family-hook.sh` does this: on every SessionStart it adds `wb family` to the session's context with a reminder to follow `/family`, and before a prompt it adds it again only when the view's `cksum` changed. The hash leaves out `Updated:` lines and the session's own status block. Seen hashes are kept in `$WB_STATE_DIR/family-seen/<session id>`.
 
 The shared shape, as `wb family` reads it (KTD1 in the plan):
 

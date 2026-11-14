@@ -25,6 +25,8 @@ jq --arg dir "$dir" '
   | add("Stop"; $dir + "/claude-notify-hook.sh done")
   | add("Stop"; $dir + "/claude-autoclear.sh stop")
   | add("SessionStart"; $dir + "/claude-pickup-hook.sh")
+  | add("SessionStart"; $dir + "/claude-family-hook.sh")
+  | add("UserPromptSubmit"; $dir + "/claude-family-hook.sh")
   | .statusLine //= {type: "command", command: ($dir + "/claude-statusline.sh")}
 ' "$settings" > "$settings.tmp.$$"
 mv "$settings.tmp.$$" "$settings"
