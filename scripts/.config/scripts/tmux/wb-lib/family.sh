@@ -5,34 +5,30 @@
 # `affects:` line, and waits on Jet until a family decision cites it with
 # `from: <stem> / <title>` (KTD3).
 
-# wb_family_root <stem> — walk parent: up to the root and print its stem.
-# Fails on a parent: cycle. A parent with no task file ends the walk.
-wb_family_root() {
-  local cur="$1" parent
-  local -A seen=()
-  while :; do
+# wb_family_members <stem> — the family's task files, root first, leaving
+# out members that are done. The root is found by walking parent: up; a
+# parent with no task file ends the walk. Fails when the task has no
+# family: a parent: cycle, or a root with no member besides itself.
+wb_family_members() {
+  local line stem cur parent
+  local -A parent_of=() status_of=() file_of=() seen=()
+  local -a rec out=()
+  while IFS= read -r line; do
+    wb_tsv_split "$line" rec
+    stem="${rec[0]##*/}"; stem="${stem%.md}"
+    file_of[$stem]="${rec[0]}"; status_of[$stem]="${rec[1]}"; parent_of[$stem]="${rec[6]}"
+  done < <(wb_task_read_all)
+  cur="$1"
+  [ -n "${file_of[$cur]:-}" ] || return 1
+  while parent="${parent_of[$cur]}"; [ -n "$parent" ] && [ "$parent" != "$cur" ] && [ -n "${file_of[$parent]:-}" ]; do
     seen[$cur]=1
-    parent="$(wb_task_get "$(wb_task_file_for_stem "$cur")" parent)"
-    if [ -z "$parent" ] || [ "$parent" = "$cur" ] || ! wb_task_exists "$(wb_task_file_for_stem "$parent")"; then
-      echo "$cur"; return 0
-    fi
     [ -z "${seen[$parent]:-}" ] || return 1
     cur="$parent"
   done
-}
-
-# wb_family_members <stem> — the family's task files, root first, leaving
-# out members that are done. Fails when the task has no family: no root,
-# or a root with no member besides itself.
-wb_family_members() {
-  local root stem file
-  local -a out=()
-  root="$(wb_family_root "$1")" || return 1
   while IFS= read -r stem; do
-    file="$(wb_task_file_for_stem "$stem")"
-    [ "$stem" = "$root" ] || [ "$(wb_task_get "$file" status)" != "done" ] || continue
-    out+=("$file")
-  done < <(wb_family_tree "$root")
+    [ "$stem" = "$cur" ] || [ "${status_of[$stem]}" != "done" ] || continue
+    out+=("${file_of[$stem]}")
+  done < <(wb_family_tree "$cur")
   [ "${#out[@]}" -ge 2 ] || return 1
   printf '%s\n' "${out[@]}"
 }
@@ -49,12 +45,12 @@ wb_family_view() {
     function norm(s) { gsub(/[ \t]+/, " ", s); sub(/^ /, "", s); sub(/ $/, "", s); return s }
     function trim(s) { sub(/^\n+/, "", s); sub(/\n+$/, "", s); return s }
     function blank(s) { return s !~ /[^ \t\n]/ }
-    FNR == 1 { fi++; st[fi] = stem(FILENAME); body = ($0 != "---"); sec = ""; kind = "" ; if (!body) next }
+    FNR == 1 { fi++; st[fi] = stem(FILENAME); body = ($0 != "---"); sec = ""; kind = ""; if (!body) next }
     !body { if ($0 == "---") body = 1; next }
     /^## / { sec = $0; kind = ""; next }
     sec == "## Status" { stat[fi] = stat[fi] $0 "\n"; next }
     sec == "## Family decisions" && fi == 1 {
-      if (/^### /) { n++; ft[n] = substr($0, 5); fs[n] = ""; kind = "fd" }
+      if (/^### /) { n++; ft[n] = substr($0, 5); kind = "fd" }
       if (kind == "fd") {
         fb[n] = fb[n] $0 "\n"
         if (fs[n] == "" && /^status:/) fs[n] = val($0)
@@ -103,9 +99,10 @@ wb_family_view() {
 # _wb_family_files <verb> — WB_FAMILY from WB_TASK's family; fails, saying
 # why, when the task has none.
 _wb_family_files() {
-  mapfile -t WB_FAMILY < <(wb_family_members "$(wb_task_stem "$WB_TASK")")
+  local stem="${WB_TASK##*/}"
+  mapfile -t WB_FAMILY < <(wb_family_members "${stem%.md}")
   [ "${#WB_FAMILY[@]}" -ge 2 ] && return 0
-  echo "wb $1: $(wb_task_stem "$WB_TASK") isn't in a family (no parent: task with other members)" >&2
+  echo "wb $1: ${stem%.md} isn't in a family (no parent: task with other members)" >&2
   return 1
 }
 
@@ -152,22 +149,4 @@ cmd_status() {
   wb_lock_acquire "$WB_TASK" || return 75
   wb_task_set_status "$WB_TASK" "$WB_BODY"
   wb_lock_release "$WB_TASK"
-}
-
-# wb_task_set_status <file> <body> — replace the `## Status` section, or add
-# it after the title, before the first `## ` section.
-wb_task_set_status() {
-  WB_STATUS_BODY="$2" awk '
-    BEGIN { body = ENVIRON["WB_STATUS_BODY"]; target = "## Status" }
-    function put() { print target; print ""; print body; print ""; done = 1 }
-    FNR == 1 { pass++; infm = ($0 == "---"); fm = 0 }
-    pass == 1 { if ($0 == target) exists = 1; next }
-    infm && fm < 2 { if ($0 == "---") fm++; print; next }
-    exists && $0 == target { put(); skipping = 1; next }
-    skipping && /^## / { skipping = 0 }
-    skipping { next }
-    !exists && !done && /^## / { put() }
-    { print }
-    END { if (!done) { print ""; put() } }
-  ' "$1" "$1" > "$1.tmp.$$" && mv "$1.tmp.$$" "$1"
 }

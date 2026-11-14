@@ -203,12 +203,12 @@ wb_task_append_entry() {
 wb_task_set_decision() { wb_task_set_entry "$1" "## Decisions" "$2" "$3"; }
 
 # wb_task_set_entry <file> <section> <title> <body> — the same, in any
-# `## ` section; the family decisions use it too.
+# `## ` section.
 wb_task_set_entry() {
   local body
   body="### $3"$'\n\n'"$(printf '%s\n' "$4" | wb_entry_demote)"
-  WB_DECISION_HEAD="### $3" WB_DECISION_BODY="$body" WB_SECTION="$2" awk '
-    BEGIN { head = ENVIRON["WB_DECISION_HEAD"]; body = ENVIRON["WB_DECISION_BODY"]; target = ENVIRON["WB_SECTION"] }
+  WB_ENTRY_HEAD="### $3" WB_ENTRY_BODY="$body" WB_SECTION="$2" awk '
+    BEGIN { head = ENVIRON["WB_ENTRY_HEAD"]; body = ENVIRON["WB_ENTRY_BODY"]; target = ENVIRON["WB_SECTION"] }
     function put() { if (prev != "") print ""; print body; print ""; done = 1 }
     FNR == 1 { pass++; prev = "" }
     pass == 1 { if ($0 == target) exists = 1; if (exists && $0 == head) replace = 1; next }
@@ -226,6 +226,24 @@ wb_task_set_entry() {
         print body
       }
     }
+  ' "$1" "$1" > "$1.tmp.$$" && mv "$1.tmp.$$" "$1"
+}
+
+# wb_task_set_status <file> <body> — replace the `## Status` section, or add
+# it after the title, before the first `## ` section.
+wb_task_set_status() {
+  WB_STATUS_BODY="$2" awk '
+    BEGIN { body = ENVIRON["WB_STATUS_BODY"]; target = "## Status" }
+    function put() { print target; print ""; print body; print ""; done = 1 }
+    FNR == 1 { pass++; infm = ($0 == "---"); fm = 0 }
+    pass == 1 { if ($0 == target) exists = 1; next }
+    infm && fm < 2 { if ($0 == "---") fm++; print; next }
+    exists && $0 == target { put(); skipping = 1; next }
+    skipping && /^## / { skipping = 0 }
+    skipping { next }
+    !exists && !done && /^## / { put() }
+    { print }
+    END { if (!done) { print ""; put() } }
   ' "$1" "$1" > "$1.tmp.$$" && mv "$1.tmp.$$" "$1"
 }
 
@@ -296,7 +314,7 @@ wb_family_tree() {
   local -a rec
   while IFS= read -r line; do
     wb_tsv_split "$line" rec
-    stem="$(wb_task_stem "${rec[0]}")"; parent="${rec[6]}"
+    stem="${rec[0]##*/}"; stem="${stem%.md}"; parent="${rec[6]}"
     [ -n "$parent" ] && [ "$parent" != "$stem" ] || continue
     kids[$parent]+=" $stem"
   done < <(wb_task_read_all)
