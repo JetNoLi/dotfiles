@@ -84,6 +84,14 @@ flat="$(wb family --task proj--root | tr '\n' ' ' | tr -s ' ')"
 assert_eq "once a family decision cites it, it is no longer listed" "" "$(grep -o 'Not yet taken in' <<< "$flat")"
 assert_eq "and the count is the family decision's alone" 3 "$(wb family --waiting --task proj--root)"
 
+# A declined family decision isn't waiting, and still takes in what it cites.
+printf 'status: proposed\naffects: [proj--hook]\n' | wb decision "Drop the hook" --task proj--picker
+printf 'status: declined\naffects: [proj--hook]\nfrom: proj--picker / Drop the hook\nconfirmed: 2026-11-14, Jet: "no"\n' \
+  | wb family-decision "Drop the hook" --task proj--root
+flat="$(wb family --task proj--root | tr '\n' ' ' | tr -s ' ')"
+assert "a declined decision is listed under Declined, after In force" 'In force.*Declined.*### Drop the hook status: declined' "$flat"
+assert_eq "and neither it nor the proposal it cites is counted" 3 "$(wb family --waiting --task proj--root)"
+
 # A Decisions entry with no affects: line is single-task (AE2).
 printf 'status: proposed\n\nOnly this task.\n' | wb decision "Local only" --task proj--picker
 assert_eq "a single-task proposal never appears" "" "$(wb family --task proj--root | grep 'Local only')"

@@ -113,11 +113,28 @@ it with Jet here. If Jet agrees, record it as a family decision whose
 `from:` points at the worker's entry.
 
 **Confirm in this session.** Ask Jet to confirm, then rewrite the entry under
-the same title with `status: in-force` and a `confirmed:` line holding the
-date and Jet's reply verbatim.
+the same title. The rewrite replaces the whole entry, so keep its other lines
+(dropping `from:` would bring the worker's proposal back as untaken), change
+`status:` and add a `confirmed:` line with the date and Jet's reply verbatim:
 
-**Message only to unblock.** Once a decision is in force, message each
-worker whose Holding line waits on it, idle ones included: find them with
-ListAgents, send with SendMessage. Say which decision is now in force and
-point at `wb family`. Send no other messages to workers. Everything else
+```bash
+~/.config/scripts/tmux/wb family-decision "<short title>" <<'EOF'
+status: in-force
+affects: [dotfiles--family-hook, dotfiles--family-picker]
+discussed in: dotfiles--coordinators
+from: dotfiles--family-hook / <the worker's title>
+confirmed: 2026-11-14, Jet: "yes, go with that"
+
+What it is, and what it changes for each affected task.
+EOF
+```
+
+**When Jet says no**, rewrite it the same way with `status: declined` and
+Jet's reply in the `confirmed:` line. It stops waiting on Jet, and a cited
+worker proposal stays taken in. Tell the workers holding on it, as below.
+
+**Message only to unblock.** Once a decision is in force or declined,
+message each worker whose Holding line waits on it, idle ones included: find them with
+ListAgents, send with SendMessage. Say which decision is now in force or
+declined and point at `wb family`. Send no other messages to workers. Everything else
 reaches them through the family view.

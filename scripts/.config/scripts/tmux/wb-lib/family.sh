@@ -35,8 +35,8 @@ wb_family_members() {
 
 # wb_family_view <mode> <file...> — the view (mode "view") or the number
 # waiting on Jet (mode "count"), from the members' files, root first.
-# Waiting: every family decision not in force, plus every worker proposal
-# no family decision cites.
+# Waiting: every family decision neither in force nor declined, plus every
+# worker proposal no family decision cites.
 wb_family_view() {
   local mode="$1"; shift
   awk -v mode="$mode" '
@@ -45,6 +45,7 @@ wb_family_view() {
     function norm(s) { gsub(/[ \t]+/, " ", s); sub(/^ /, "", s); sub(/ $/, "", s); return s }
     function trim(s) { sub(/^\n+/, "", s); sub(/\n+$/, "", s); return s }
     function blank(s) { return s !~ /[^ \t\n]/ }
+    function closed(s) { return s == "in-force" || s == "declined" }
     FNR == 1 { fi++; st[fi] = stem(FILENAME); body = ($0 != "---"); sec = ""; kind = ""; if (!body) next }
     !body { if ($0 == "---") body = 1; next }
     /^## / { sec = $0; kind = ""; next }
@@ -68,7 +69,7 @@ wb_family_view() {
     }
     END {
       waiting = 0
-      for (i = 1; i <= n; i++) if (fs[i] != "in-force") waiting++
+      for (i = 1; i <= n; i++) if (!closed(fs[i])) waiting++
       for (i = 1; i <= w; i++) {
         isopen[i] = (ws[i] == "proposed" && wa[i] != "" && wa[i] != "[]" && !cited[norm(wstem[i] " / " wt[i])])
         if (isopen[i]) { waiting++; untaken++ }
@@ -77,12 +78,14 @@ wb_family_view() {
 
       printf "Family of %s (the coordinator)\n\n== Waiting on Jet: %d ==\n", st[1], waiting
       shown = 0
-      for (i = 1; i <= n; i++) if (fs[i] != "in-force") { printf "\n%s\n", trim(fb[i]); shown++ }
+      for (i = 1; i <= n; i++) if (!closed(fs[i])) { printf "\n%s\n", trim(fb[i]); shown++ }
       if (!shown) print "\n(no proposed family decisions)"
       print "\n== In force =="
       shown = 0
       for (i = 1; i <= n; i++) if (fs[i] == "in-force") { printf "\n%s\n", trim(fb[i]); shown++ }
       if (!shown) print "\n(none yet)"
+      shown = 0
+      for (i = 1; i <= n; i++) if (fs[i] == "declined") { if (!shown++) print "\n== Declined =="; printf "\n%s\n", trim(fb[i]) }
       print "\n== Status =="
       for (i = 1; i <= fi; i++) {
         printf "\n-- %s%s --\n", st[i], (i == 1 ? " (coordinator)" : "")

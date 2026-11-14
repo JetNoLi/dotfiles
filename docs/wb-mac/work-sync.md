@@ -60,11 +60,11 @@ The shared shape, as `wb family` reads it (KTD1 in the plan):
 ## Family decisions          <- in the root (coordinator) task only
 
 ### <title>
-status: proposed           <- or in-force
+status: proposed           <- or in-force, or declined (Jet said no)
 affects: [<child stem>, ...]
 discussed in: <coordinator stem>
 from: <worker stem> / <worker's Decisions title>   <- when taken in from a worker
-confirmed: <date>, Jet: "<reply verbatim>"         <- once in force
+confirmed: <date>, Jet: "<reply verbatim>"         <- once in force or declined
 
 ## Status                    <- in every member's task, written by its own session
 
@@ -74,6 +74,6 @@ Holding: <what is held, and on which decision> | nothing
 Updated: <date time>
 ```
 
-A worker's cross-task proposal is a Decisions entry in its own task with `status: proposed` and an `affects:` line. It counts as waiting on Jet until a family decision cites it with `from:`. Done members are left out of the family.
+A worker's cross-task proposal is a Decisions entry in its own task with `status: proposed` and an `affects:` line. It counts as waiting on Jet until a family decision cites it with `from:`. Done members are left out of the family. `declined` was added on 2026-11-14, after code review found a turned-down decision had no way out of the waiting count.
 
 The work side answered the overlap question on 2026-11-12 (OQ1 in the plan). It has a coordinator habit and decision messaging, but no proposed or in-force status, and will adopt the plan's rules. The two sides share one plain-text shape. The work side builds the generated family page, the day-start overview by priority and the day-end refresh first; the Mac ports them at verdict time.
