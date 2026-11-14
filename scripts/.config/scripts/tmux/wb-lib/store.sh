@@ -200,11 +200,15 @@ wb_task_append_entry() {
 # wb_task_set_decision <file> <title> <body> — the Decisions entry
 # `### <title>`, replaced in place when one has that title, else appended at
 # the end of the section. A file without the section gets it before Done.
-wb_task_set_decision() {
+wb_task_set_decision() { wb_task_set_entry "$1" "## Decisions" "$2" "$3"; }
+
+# wb_task_set_entry <file> <section> <title> <body> — the same, in any
+# `## ` section; the family decisions use it too.
+wb_task_set_entry() {
   local body
-  body="### $2"$'\n\n'"$(printf '%s\n' "$3" | wb_entry_demote)"
-  WB_DECISION_HEAD="### $2" WB_DECISION_BODY="$body" awk '
-    BEGIN { head = ENVIRON["WB_DECISION_HEAD"]; body = ENVIRON["WB_DECISION_BODY"]; target = "## Decisions" }
+  body="### $3"$'\n\n'"$(printf '%s\n' "$4" | wb_entry_demote)"
+  WB_DECISION_HEAD="### $3" WB_DECISION_BODY="$body" WB_SECTION="$2" awk '
+    BEGIN { head = ENVIRON["WB_DECISION_HEAD"]; body = ENVIRON["WB_DECISION_BODY"]; target = ENVIRON["WB_SECTION"] }
     function put() { if (prev != "") print ""; print body; print ""; done = 1 }
     FNR == 1 { pass++; prev = "" }
     pass == 1 { if ($0 == target) exists = 1; if (exists && $0 == head) replace = 1; next }
