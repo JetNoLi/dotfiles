@@ -46,12 +46,34 @@ Each section there has the Mac version, the work version, and an open verdict. S
 - **Binding a task to an existing session:** a session not started by `wb new` needs `@wb_repo` and `@wb_slug` as well as `@task`, or the picker shows it as a plain session. Use the target form `-t '=<session>:'`, with the trailing colon.
 - **A worker closing its own task:** `wb done` stops the agent that calls it, so a session closing itself has to schedule it, for example with `tmux run-shell -b`. Without `--close`, the empty tmux session stays open.
 
-## In design: family coordinators
+## Being built: family coordinators
 
 `docs/plans/2026-11-06-1531-feat-wb-family-coordinators-plan.md` has the requirements. In short:
 - A coordinator session alone writes the family decisions: cross-task decisions marked `proposed` or `in-force`, with the tasks they affect (`affects:`) and where each is discussed. Each worker writes its own status block with Phase and Holding lines.
 - Nothing is in force until a session asks Jet and Jet confirms.
 - Affected workers hold only the dependent work.
 - Sessions learn of decisions in force automatically, and every reply says whether Jet is needed.
+
+The shared shape, as `wb family` reads it (KTD1 in the plan):
+
+```markdown
+## Family decisions          <- in the root (coordinator) task only
+
+### <title>
+status: proposed           <- or in-force
+affects: [<child stem>, ...]
+discussed in: <coordinator stem>
+from: <worker stem> / <worker's Decisions title>   <- when taken in from a worker
+confirmed: <date>, Jet: "<reply verbatim>"         <- once in force
+
+## Status                    <- in every member's task, written by its own session
+
+Phase: planning | building | reviewing
+Touching: <files or areas>
+Holding: <what is held, and on which decision> | nothing
+Updated: <date time>
+```
+
+A worker's cross-task proposal is a Decisions entry in its own task with `status: proposed` and an `affects:` line. It counts as waiting on Jet until a family decision cites it with `from:`. Done members are left out of the family.
 
 The work side answered the overlap question on 2026-11-12 (OQ1 in the plan). It has a coordinator habit and decision messaging, but no proposed or in-force status, and will adopt the plan's rules. The two sides share one plain-text shape. The work side builds the generated family page, the day-start overview by priority and the day-end refresh first; the Mac ports them at verdict time.

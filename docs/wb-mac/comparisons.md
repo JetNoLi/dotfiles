@@ -139,6 +139,18 @@ On both machines, `ctrl+hjkl` stays with tmux and nvim.
 
 **Verdict:** open.
 
+## 12. Family coordinators instead of `[wb-propagate]` relays
+
+**What differs.** The root task's session coordinates its family and alone writes the family decisions, in the root's `## Family decisions` (`wb family-decision`). Each one is `status: proposed` until Jet confirms it when asked, then `in-force`, with `affects:`, `discussed in:` and `from:` lines. Each member keeps a `## Status` block (`wb status`) with Phase, Touching and Holding lines. A worker's cross-task proposal starts in its own Decisions with `affects:`, and waits on Jet until the coordinator takes it in. `wb family` prints the whole view. The `family` skill carries the rules. Messages go only to workers a decision unblocks. Plan: `docs/plans/2026-11-06-1531-feat-wb-family-coordinators-plan.md`.
+
+**What to watch.**
+- A leaning treated as a decision, the failure this exists for.
+- Whether sessions keep their Holding line current, and whether the coordinator judges impact well from it.
+- Whether a worker settles a cross-task item itself instead of sending it to the coordinator.
+- Replies that end without saying whether Jet is needed.
+
+**Verdict:** open, judged after about two weeks on the first family against the plan's Success Criteria.
+
 ## Work-skill behaviours and where they went (R23)
 
 Every behaviour of the six work skills is either covered by the plan's R1–R22 or left out on purpose:
