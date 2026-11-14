@@ -71,7 +71,7 @@ wb_status_line() {
     legend=$'\033[33mdoing'"$rs"$' \033[36mreview'"$rs"$' \033[90mpaused'"$rs"
   else
     label=LIVE
-    legend=$'\033[1;35mneeds you'"$rs"$' \033[36mfinished'"$rs"$' \033[33mworking'"$rs"$' \033[90midle'"$rs"$' \033[90m(here) you are here · (bg) background'"$rs"
+    legend=$'\033[1;35mneeds you'"$rs"$' \033[36mfinished'"$rs"$' \033[32mdone'"$rs"$' \033[33mworking'"$rs"$' \033[90midle'"$rs"$' \033[90m(here) you are here · (bg) background'"$rs"
     if [ -n "$snap" ]; then
       local tag="" n=""
       { IFS=$'\t' read -r tag n; } 2>/dev/null < "$snap" || true
