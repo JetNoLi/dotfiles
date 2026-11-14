@@ -71,4 +71,19 @@ assert_eq "u moves to the next one" "pos(5)" "$(FZF_POS=3 _next_needs "$mode" "$
 assert_eq "u wraps to the first" "pos(3)" "$(FZF_POS=5 _next_needs "$mode" "$view")"
 assert_eq "the own row never counts for u" "pos(3)" "$(FZF_POS=0 _next_needs "$mode" "$view")"
 
+# --- a family's waiting count (U6) -----------------------------------------------------------
+disp() { blocks "$@" | wb_order_blocks | wb_format_for_display "$T/gsnap"; }
+plainrow="$(row alpha a-root s1 100)"
+assert_eq "a root with 0 waiting renders exactly as one with no family" \
+  "$(disp "$plainrow" | cut -f1)" "$(disp "$plainrow"$'\t0' | cut -f1)"
+out="$(disp "$plainrow"$'\t2')"
+assert "a root with 2 waiting is tagged in magenta" $'a-root\033\\[1;35m \\(2 to decide\\)\033\\[0m' "$(cut -f1 <<< "$out")"
+assert_eq "and the row counts as needing Jet" 1 "$(awk -F'\t' 'NR == 2 { print $3 }' "$T/gsnap")"
+assert_eq "the header counts it" "count	1" "$(head -n1 "$T/gsnap")"
+w1="$(disp "$plainrow" | plain | LC_ALL=en_US.UTF-8 wc -m)"; w2="$(plain <<< "$out" | LC_ALL=en_US.UTF-8 wc -m)"
+assert_eq "the tag keeps the row's width" "$w1" "$w2"
+out="$(blocks "$plainrow"$'\t2' | WB_PICKER_SESSION=s1 wb_order_blocks | WB_PICKER_SESSION=s1 wb_format_for_display "$T/gsnap" | plain)"
+assert "on the session Jet is in, both tags show" 'a-root \(2 to decide\) \(here\)' "$out"
+assert_eq "and it doesn't count as needing Jet" 0 "$(awk -F'\t' 'NR == 2 { print $3 }' "$T/gsnap")"
+
 finish

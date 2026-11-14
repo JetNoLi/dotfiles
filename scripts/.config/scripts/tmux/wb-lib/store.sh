@@ -307,27 +307,42 @@ wb_task_session() {
 
 # --- families -----------------------------------------------------------------
 
-# wb_family_tree <stem> — the stem, then each descendant depth-first, once.
-wb_family_tree() {
-  local -A kids=() out=()
-  local line stem parent i
+# _wb_family_load — every task's file, status, parent and children from one
+# read of the store, for the helpers below.
+_wb_family_load() {
+  declare -gA _WBF_FILE=() _WBF_STATUS=() _WBF_PARENT=() _WBF_KIDS=()
+  local line stem parent
   local -a rec
   while IFS= read -r line; do
     wb_tsv_split "$line" rec
     stem="${rec[0]##*/}"; stem="${stem%.md}"; parent="${rec[6]}"
-    [ -n "$parent" ] && [ "$parent" != "$stem" ] || continue
-    kids[$parent]+=" $stem"
+    _WBF_FILE[$stem]="${rec[0]}"; _WBF_STATUS[$stem]="${rec[1]}"; _WBF_PARENT[$stem]="$parent"
+    if [ -n "$parent" ] && [ "$parent" != "$stem" ]; then _WBF_KIDS[$parent]+=" $stem"; fi
   done < <(wb_task_read_all)
+}
 
+# _wb_family_walk <stem> — WBF_WALK: the stem, then each descendant
+# depth-first, once. Needs _wb_family_load.
+_wb_family_walk() {
+  local stem i
+  local -A out=()
   local -a stack=("$1") children=()
+  WBF_WALK=()
   while [ "${#stack[@]}" -gt 0 ]; do
     stem="${stack[-1]}"; unset 'stack[-1]'
     [ -z "${out[$stem]:-}" ] || continue
     out[$stem]=1
-    printf '%s\n' "$stem"
-    read -ra children <<< "${kids[$stem]:-}"
+    WBF_WALK+=("$stem")
+    read -ra children <<< "${_WBF_KIDS[$stem]:-}"
     for (( i = ${#children[@]} - 1; i >= 0; i-- )); do stack+=("${children[i]}"); done
   done
+}
+
+# wb_family_tree <stem> — the stem, then each descendant depth-first, once.
+wb_family_tree() {
+  _wb_family_load
+  _wb_family_walk "$1"
+  printf '%s\n' "${WBF_WALK[@]}"
 }
 
 # --- Claude transcripts ---------------------------------------------------------

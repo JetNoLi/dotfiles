@@ -1,11 +1,12 @@
 # rows.sh — the picker's rows: live tmux sessions, their agent panes,
 # background sessions, and dormant tasks, grouped and formatted (R2, R7).
 #
-# Every row is 13 tab-separated fields:
+# Every row is 13 tab-separated fields, plus a 14th on a family's anchor:
 #   1 repo   2 label   3 [branch]   4 urgency rank   5 "icon label"
 #   6 target pane   7 tmux session   8 ref (task file or dir)
 #   9 kind: task | repo | agent | bg | sep   10 agent count
 #   11 slug (a bg row's job id)   12 nesting marker   13 visit epoch
+#   14 decisions waiting on Jet in the family this row anchors
 # The nesting marker is empty for a top-level row, "1" for a sibling, "cN"
 # for a child at level N, "aN" for an agent pane under a level-N row.
 
@@ -177,12 +178,16 @@ wb_emit_with_agents() {
 # _wb_emit_family <idx> <level> <marker> — row <idx>, then every unconsumed
 # row whose parent is its stem, one level deeper (capped at WB_NEST_MAX).
 # Each row is marked consumed before recursing, so a parent: cycle ends where
-# it closes. Reads the caller's rows/parent_of/stem_of/consumed.
+# it closes. The row anchoring a family (fam_anchor) gets the family's
+# waiting count as field 14. Reads the caller's rows/parent_of/stem_of/
+# consumed and fam_root/fam_count/fam_anchor.
 _wb_emit_family() {
-  local idx="$1" level="$2" marker="$3" row next j
+  local idx="$1" level="$2" marker="$3" row next j fr=""
   consumed[$idx]=1
   row="${rows[$idx]}"
   [ -n "$marker" ] && row="$(wb_parent_subrows "$row" "$marker")"
+  [ -z "${stem_of[$idx]}" ] || fr="${fam_root[${stem_of[$idx]}]:-}"
+  [ -z "$fr" ] || [ "${fam_anchor[$fr]:-}" != "$idx" ] || row+=$'\t'"${fam_count[$fr]}"
   wb_emit_with_agents "$row" "$level"
   [ -n "${stem_of[$idx]}" ] || return 0
   next=$(( level + 1 )); [ "$next" -le "$WB_NEST_MAX" ] || next="$WB_NEST_MAX"
@@ -260,6 +265,31 @@ _collect_combined_blocks() {
       parent="$(wb_task_get "${f[7]}" parent)"
       [ "$parent" != "$stem" ] || parent=""
       parent_of[$i]="$parent"; stem_of[$i]="$stem"; idx_of_stem[$stem]="$i"
+    fi
+  done
+
+  # Each family's waiting count, read once per render, and the one row that
+  # shows it (R12, AE4): the root's row, else the earliest-created member
+  # row with no live parent (the anchor a sibling group gets), so the tag
+  # stays put however Jet moves between sessions.
+  local -A fam_root=() fam_count=() fam_anchor=() fam_anchor_at=()
+  local -a stems=() fr
+  local fstem froot fcount fat
+  for i in "${!rows[@]}"; do [ -z "${stem_of[$i]}" ] || stems+=("${stem_of[$i]}"); done
+  if [ "${#stems[@]}" -gt 0 ]; then
+    while IFS=$'\t' read -r fstem froot fcount; do
+      fam_root[$fstem]="$froot"; fam_count[$froot]="$fcount"
+    done < <(wb_family_waiting "${stems[@]}")
+  fi
+  for i in "${!rows[@]}"; do
+    [ -n "${stem_of[$i]}" ] && froot="${fam_root[${stem_of[$i]}]:-}" && [ -n "$froot" ] || continue
+    if [ -n "${idx_of_stem[$froot]:-}" ]; then fam_anchor[$froot]="${idx_of_stem[$froot]}"; continue; fi
+    parent="${parent_of[$i]}"
+    [ -z "$parent" ] || [ -z "${idx_of_stem[$parent]:-}" ] || continue
+    wb_tsv_split "${rows[$i]}" fr
+    fat="$(wb_task_get "${fr[7]}" created)"
+    if [ -z "${fam_anchor[$froot]:-}" ] || { [ -n "$fat" ] && { [ -z "${fam_anchor_at[$froot]}" ] || [[ "$fat" < "${fam_anchor_at[$froot]}" ]]; }; }; then
+      fam_anchor[$froot]="$i"; fam_anchor_at[$froot]="$fat"
     fi
   done
 
@@ -388,7 +418,7 @@ wb_picker_name_width() {
 }
 
 # wb_format_for_display [<snapshot>] — prepend the padded, coloured display
-# string as a new field 1 (fields 2-14 stay addressable for fzf binds). Status
+# string as a new field 1 (fields 2-15 stay addressable for fzf binds). Status
 # is the colour of REPO and NAME: needs you bold magenta, finished cyan,
 # done green, working yellow, idle and no agent grey, as on the work
 # machine. Colour goes by label: finished and done share a rank, so the rank
@@ -396,7 +426,9 @@ wb_picker_name_width() {
 # review cyan, paused grey). The session Jet is in is grey, tagged (here),
 # never counts as needing Jet, and its family is closed off by a separator
 # row (kind "sep") that every key ignores. Each repo name prints once per
-# group except in search mode, where fzf can only match what is shown.
+# group except in search mode, where fzf can only match what is shown. A
+# family's anchor row with decisions waiting is tagged "(N to decide)" in
+# magenta and counts as needing Jet.
 #
 # <snapshot> (live tab only) gets "count\tN", then per row
 # "pos\tsession\tneeds\there\ttarget\tkind", for `u`, the header count and
@@ -430,6 +462,9 @@ wb_format_for_display() {
         # A multi-agent session lists its panes as sub-rows; only the sub-row
         # that waits counts, so `u` lands on the pane itself.
         nd = (!dorm && !hs && $4 != "" && $4 + 0 == 0 && ($9 == "agent" || $(10) + 0 <= 1))
+        # A family anchor with decisions waiting needs Jet too (R12).
+        wt = (dorm || $9 == "agent") ? 0 : $(14) + 0
+        if (wt > 0 && !hs) nd = 1
         if (dorm) {
           w = lbl; sub(/ .*/, "", w)
           c = (w == "doing") ? ye : (w == "review") ? cy : dim
@@ -458,9 +493,14 @@ wb_format_for_display() {
         }
         txt = pre $2
         # Tags are cut around, never cut off: the name shortens instead.
-        if (hs && $9 != "agent") ncell[n] = pad(fit(txt, wn - 7) " (here)", wn)
-        else if ($9 == "bg")     ncell[n] = pad(fit(txt, wn - 5) " (bg)", wn)
-        else                     ncell[n] = pad(txt, wn)
+        dt = (wt > 0) ? " (" wt " to decide)" : ""
+        tag = dt
+        if (hs && $9 != "agent") tag = tag " (here)"
+        else if ($9 == "bg")     tag = tag " (bg)"
+        base = fit(txt, wn - nch(tag))
+        ncell[n] = pad(base tag, wn)
+        if (dt != "" && !hs && nch(base tag) <= wn)   # recolour only a tag pad() left whole
+          ncell[n] = substr(ncell[n], 1, length(base)) mg dt rs c substr(ncell[n], length(base) + length(dt) + 1)
         br = $3; sub(/^\[/, "", br); sub(/\]$/, "", br)
         bcell[n] = padtail(br, wb)
         acell[n] = ($9 == "agent") ? pad("", wa) : pad(age($13), wa)

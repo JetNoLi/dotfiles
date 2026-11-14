@@ -5,32 +5,60 @@
 # `affects:` line, and waits on Jet until a family decision cites it with
 # `from: <stem> / <title>` (KTD3).
 
-# wb_family_members <stem> — the family's task files, root first, leaving
-# out members that are done. The root is found by walking parent: up; a
-# parent with no task file ends the walk. Fails when the task has no
-# family: a parent: cycle, or a root with no member besides itself.
-wb_family_members() {
-  local line stem cur parent
-  local -A parent_of=() status_of=() file_of=() seen=()
-  local -a rec out=()
-  while IFS= read -r line; do
-    wb_tsv_split "$line" rec
-    stem="${rec[0]##*/}"; stem="${stem%.md}"
-    file_of[$stem]="${rec[0]}"; status_of[$stem]="${rec[1]}"; parent_of[$stem]="${rec[6]}"
-  done < <(wb_task_read_all)
-  cur="$1"
-  [ -n "${file_of[$cur]:-}" ] || return 1
-  while parent="${parent_of[$cur]}"; [ -n "$parent" ] && [ "$parent" != "$cur" ] && [ -n "${file_of[$parent]:-}" ]; do
+# _wb_family_root <stem> — REPLY: the family root, found by walking parent:
+# up; a parent with no task file ends the walk. Fails on a parent: cycle or
+# a stem with no task file. Needs _wb_family_load.
+_wb_family_root() {
+  local cur="$1" parent
+  local -A seen=()
+  [ -n "${_WBF_FILE[$cur]:-}" ] || return 1
+  while parent="${_WBF_PARENT[$cur]}"; [ -n "$parent" ] && [ "$parent" != "$cur" ] && [ -n "${_WBF_FILE[$parent]:-}" ]; do
     seen[$cur]=1
     [ -z "${seen[$parent]:-}" ] || return 1
     cur="$parent"
   done
-  while IFS= read -r stem; do
-    [ "$stem" = "$cur" ] || [ "${status_of[$stem]}" != "done" ] || continue
-    out+=("${file_of[$stem]}")
-  done < <(wb_family_tree "$cur")
-  [ "${#out[@]}" -ge 2 ] || return 1
-  printf '%s\n' "${out[@]}"
+  REPLY="$cur"
+}
+
+# _wb_family_files_of <root> — WBF_OUT: the root's file, then each member's
+# in wb_family_tree's order, leaving out members that are done. Fails when
+# the root has no member besides itself. Needs _wb_family_load.
+_wb_family_files_of() {
+  local stem
+  WBF_OUT=()
+  _wb_family_walk "$1"
+  for stem in "${WBF_WALK[@]}"; do
+    if [ "$stem" = "$1" ] || [ "${_WBF_STATUS[$stem]}" != "done" ]; then WBF_OUT+=("${_WBF_FILE[$stem]}"); fi
+  done
+  [ "${#WBF_OUT[@]}" -ge 2 ]
+}
+
+# wb_family_members <stem> — the family's task files, root first, leaving
+# out members that are done. Fails when the task has no family: a parent:
+# cycle, or a root with no member besides itself.
+wb_family_members() {
+  _wb_family_load
+  _wb_family_root "$1" || return 1
+  _wb_family_files_of "$REPLY" || return 1
+  printf '%s\n' "${WBF_OUT[@]}"
+}
+
+# wb_family_waiting <stem...> — for the picker: "<stem>\t<root>\t<count>"
+# for each stem in a family, with the number waiting on Jet. One read of
+# the store, and one of each family's files, however many stems share it.
+wb_family_waiting() {
+  local stem root
+  local -A count=()
+  _wb_family_load
+  for stem in "$@"; do
+    _wb_family_root "$stem" || continue
+    root="$REPLY"
+    if [ -z "${count[$root]+x}" ]; then
+      count[$root]=""
+      _wb_family_files_of "$root" && count[$root]="$(wb_family_view count "${WBF_OUT[@]}")"
+    fi
+    [ -z "${count[$root]}" ] || printf '%s\t%s\t%s\n' "$stem" "$root" "${count[$root]}"
+  done
 }
 
 # wb_family_view <mode> <file...> — the view (mode "view") or the number
@@ -109,17 +137,34 @@ _wb_family_files() {
   return 1
 }
 
-# cmd_family [--waiting] [--task …] [--session-id …] — print the family view,
-# or only the number of decisions waiting on Jet. Prints nothing and fails
-# when the task has no family.
+# wb_family_edit <file...> — open the files in nvim, one tab each, root
+# first, each at its family decisions, else its status block.
+wb_family_edit() {
+  local editor
+  editor="$(command -v nvim)" || { echo "wb family: nvim isn't on the PATH" >&2; return 1; }
+  "$editor" -p "$@" \
+    -c "tabdo call cursor(1, 1) | if !search('^## Family decisions', 'cW') | call search('^## Status', 'cW') | endif | normal! zt" \
+    -c tabfirst
+}
+
+# cmd_family [--waiting|--edit] [--task …] [--session-id …] — print the
+# family view, only the number of decisions waiting on Jet, or open the
+# members' files in nvim. The view and the count print nothing and fail
+# when the task has no family; --edit says why.
 cmd_family() {
   local mode=view
   _wb_entry_task family "$@" || return 1
   case "${WB_ARGS[*]:-}" in
     '') ;;
     --waiting) mode=count ;;
-    *) echo "usage: wb family [--waiting] [--task <task>]" >&2; return 1 ;;
+    --edit) mode=edit ;;
+    *) echo "usage: wb family [--waiting|--edit] [--task <task>]" >&2; return 1 ;;
   esac
+  if [ "$mode" = edit ]; then
+    _wb_family_files family || return 1
+    wb_family_edit "${WB_FAMILY[@]}"
+    return
+  fi
   _wb_family_files family 2>/dev/null || return 1
   wb_family_view "$mode" "${WB_FAMILY[@]}"
 }

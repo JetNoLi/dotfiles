@@ -73,4 +73,33 @@ fake_bg 424242 busy bg-sid bgjob /code/proj
 out="$(card "" bg bgjob "" | plain)"
 assert "a bg row's card comes from its session" 'You asked.*Background job' "$(tr '\n' ' ' <<< "$out")"
 
+# --- the Family section on a family's anchor row (U6) ---------------------------------------
+mkt() { printf -- '---\nstatus: doing\nrepo: proj\nparent: %s\n---\n# %s\n\n## Decisions\n' "$2" "$1" > "$TASKS_DIR/$1.md"; }
+mkt proj--root ""; mkt proj--kid proj--root
+cat >> "$TASKS_DIR/proj--root.md" <<'EOF'
+
+## Family decisions
+
+### One family view
+status: proposed
+affects: [proj--kid]
+discussed in: proj--root
+
+### Hash the view
+status: in-force
+affects: [proj--kid]
+discussed in: proj--root
+EOF
+printf '\n## Status\n\nPhase: building\nTouching: rows.sh\nHolding: nothing\n' >> "$TASKS_DIR/proj--kid.md"
+fam() { "$BASH" "$WB" _family-card "$@" | plain; }
+out="$(fam "$TASKS_DIR/proj--root.md" 1)"
+assert "the root's preview opens with a Family section and its count" '^── Family · 1 to decide' "$(grep . <<< "$out" | head -n1)"
+assert "it lists the open decision with what it affects and where it is discussed" \
+  'Waiting on Jet: 1 == ### One family view status: proposed affects: \[proj--kid\] discussed in: proj--root .*In force' "$(tr '\n' ' ' <<< "$out" | tr -s ' ')"
+assert "then each status block" 'Status == -- proj--root \(coordinator\) -- \(no status block\) -- proj--kid -- Phase: building' "$(tr '\n' ' ' <<< "$out" | tr -s ' ')"
+assert_eq "it leaves out the view's title line" 0 "$(grep -c '^Family of' <<< "$out")"
+assert "with nothing waiting the section has no count" '^── Family ─' "$(fam "$TASKS_DIR/proj--root.md" 0 | grep . | head -n1)"
+assert_eq "a row that anchors no family gets no section" "" "$(fam "$TASKS_DIR/proj--kid.md" "")"
+assert_eq "nor does a row with no task" "" "$(fam /nowhere 1)"
+
 finish
