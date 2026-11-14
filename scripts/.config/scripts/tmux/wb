@@ -16,6 +16,9 @@
 #   wb checkpoint          stdin → a checkpoint in this session's task (/handoff)
 #   wb handoff-to <task>   stdin → a "from <this task>" entry in another task
 #   wb decision <title>    stdin → that Decisions entry in this session's task
+#   wb family [--waiting]  the family's decisions and status blocks, or how many wait on Jet
+#   wb family-decision <title>  stdin → that family decision in the root's task (the coordinator)
+#   wb status              stdin → this task's status block (Phase, Touching, Holding)
 #   wb pickup              the latest checkpoint and every entry since it
 #   wb task-for-session    this session's task file
 #   wb clear-request       restart this session clean once its turn ends (/handoff)
@@ -63,6 +66,9 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
     checkpoint)  shift; cmd_checkpoint "$@" ;;
     handoff-to)  shift; cmd_handoff_to "$@" ;;
     decision)    shift; cmd_decision "$@" ;;
+    family)      shift; cmd_family "$@" ;;
+    family-decision) shift; cmd_family_decision "$@" ;;
+    status)      shift; cmd_status "$@" ;;
     pickup)      shift; cmd_pickup "$@" ;;
     task-for-session) shift; cmd_task_for_session "$@" ;;
     clear-request) shift; cmd_clear_request "$@" ;;

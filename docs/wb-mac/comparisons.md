@@ -100,6 +100,7 @@ Plan: `docs/plans/2026-10-30-1353-feat-wb-handoff-and-decide-plan.md`.
 - Wrong surface choices, the problem the work skills' routing tables kept hitting.
 - Whether two buffer shapes are enough, or a findings or interview shape is missed.
 - Items asked without options, pros and cons and a recommendation. Jet asked for all three on every item.
+- A candidate third shape from the work side (2026-11-12): an interview buffer of free-text questions, each saying why it is asked and the default if left blank. It worked well there on 5 Nov for reconstructing a morning from memory. It would sit alongside the rule that decision items carry options, pros and cons and a recommendation. Decide at the verdict.
 
 **Verdict:** open.
 
@@ -137,6 +138,18 @@ On both machines, `ctrl+hjkl` stays with tmux and nvim.
 **What to watch.** Whether Option+Tab's different meaning causes mistakes, and whether resize or back-and-forth are worth adding at work.
 
 **Verdict:** open.
+
+## 12. Family coordinators instead of `[wb-propagate]` relays
+
+**What differs.** The root task's session coordinates its family and alone writes the family decisions, in the root's `## Family decisions` (`wb family-decision`). Each one is `status: proposed` until Jet confirms it when asked, then `in-force`, with `affects:`, `discussed in:` and `from:` lines. Each member keeps a `## Status` block (`wb status`) with Phase, Touching and Holding lines. A worker's cross-task proposal starts in its own Decisions with `affects:`, and waits on Jet until the coordinator takes it in. `wb family` prints the whole view. The `family` skill carries the rules. Messages go only to workers a decision unblocks. Plan: `docs/plans/2026-11-06-1531-feat-wb-family-coordinators-plan.md`.
+
+**What to watch.**
+- A leaning treated as a decision, the failure this exists for.
+- Whether sessions keep their Holding line current, and whether the coordinator judges impact well from it.
+- Whether a worker settles a cross-task item itself instead of sending it to the coordinator.
+- Replies that end without saying whether Jet is needed.
+
+**Verdict:** open, judged after about two weeks on the first family against the plan's Success Criteria.
 
 ## Work-skill behaviours and where they went (R23)
 
