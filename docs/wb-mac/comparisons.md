@@ -151,6 +151,12 @@ In the picker, the row anchoring a family (the root's, or the earliest-created c
 - Whether a worker settles a cross-task item itself instead of sending it to the coordinator.
 - Replies that end without saying whether Jet is needed.
 
+**Live checks, 2026-11-14.** Run on the first family (`dotfiles--coordinators`, with family-hook and family-picker building U5 and U6 in parallel) and a throwaway probe child:
+- Picker count: a proposed decision tagged the family "(1 to decide)", and confirming it cleared the tag. Passed.
+- Hook reaches a worker: once the coordinator confirmed a decision, the probe's next turn had the new view in context from `UserPromptSubmit`. It didn't run `wb family`. A cross-session message does fire `UserPromptSubmit`. Passed.
+- After `/handoff`'s clear: the restarted session opened with both the checkpoint and the full family view, untrimmed. Passed.
+- Finding: the "(N to decide)" tag landed on the child's row, not the coordinator's. This coordinator ran in a tmux session not named after its task (`dotfiles-migration`), so the picker treated the root as not live.
+
 **Verdict:** open, judged after about two weeks on the first family against the plan's Success Criteria.
 
 ## Work-skill behaviours and where they went (R23)
