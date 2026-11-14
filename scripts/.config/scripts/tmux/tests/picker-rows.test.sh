@@ -136,4 +136,16 @@ assert_eq "a render with three families reads each family's files once" 3 "$(gre
 assert_eq "three different families" 3 "$(awk '{ print $2 }' "$T/view-calls" | sort -u | grep -c .)"
 unset -f wb_family_view; eval "$(declare -f _orig_wb_family_view | sed 's/^_orig_wb_family_view/wb_family_view/')"
 
+# A root and a middle task both dormant: live members in separate blocks
+# still tag the earliest-created one, whichever block comes first.
+droot="$(fam d-root "" dormant)"; dmid="$(fam d-mid fam--d-root dormant)"
+dkid="$(fam d-kid fam--d-root)"; dgrand="$(fam d-aa-grand fam--d-mid)"
+wb_task_set "$dkid" created 2026-11-01; wb_task_set "$dgrand" created 2026-11-03
+out="$(frows)"
+has_line "cousins: the earliest-created live member anchors" $'d kid\t\t0' "$out"
+has_line "and the later one carries nothing, though it sorts first" $'d aa grand\t\t' "$out"
+# A root whose other members are all done is no family: no count at all.
+eroot="$(fam e-root "")"; ekid="$(fam e-kid fam--e-root dormant)"; wb_task_set "$ekid" status done
+has_line "a root whose members are all done carries no count" $'e root\t\t' "$(frows)"
+
 finish

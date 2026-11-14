@@ -5,20 +5,6 @@
 # `affects:` line, and waits on Jet until a family decision cites it with
 # `from: <stem> / <title>` (KTD3).
 
-# _wb_family_load — every task's file, status, parent and children from one
-# read of the store, for the helpers below.
-_wb_family_load() {
-  declare -gA _WBF_FILE=() _WBF_STATUS=() _WBF_PARENT=() _WBF_KIDS=()
-  local line stem parent
-  local -a rec
-  while IFS= read -r line; do
-    wb_tsv_split "$line" rec
-    stem="${rec[0]##*/}"; stem="${stem%.md}"; parent="${rec[6]}"
-    _WBF_FILE[$stem]="${rec[0]}"; _WBF_STATUS[$stem]="${rec[1]}"; _WBF_PARENT[$stem]="$parent"
-    if [ -n "$parent" ] && [ "$parent" != "$stem" ]; then _WBF_KIDS[$parent]+=" $stem"; fi
-  done < <(wb_task_read_all)
-}
-
 # _wb_family_root <stem> — REPLY: the family root, found by walking parent:
 # up; a parent with no task file ends the walk. Fails on a parent: cycle or
 # a stem with no task file. Needs _wb_family_load.
@@ -35,20 +21,14 @@ _wb_family_root() {
 }
 
 # _wb_family_files_of <root> — WBF_OUT: the root's file, then each member's
-# depth-first, leaving out members that are done. Fails when the root has
-# no member besides itself. Needs _wb_family_load.
+# in wb_family_tree's order, leaving out members that are done. Fails when
+# the root has no member besides itself. Needs _wb_family_load.
 _wb_family_files_of() {
-  local stem i
-  local -A out=()
-  local -a stack=("$1") children=()
+  local stem
   WBF_OUT=()
-  while [ "${#stack[@]}" -gt 0 ]; do
-    stem="${stack[-1]}"; unset 'stack[-1]'
-    [ -z "${out[$stem]:-}" ] || continue
-    out[$stem]=1
+  _wb_family_walk "$1"
+  for stem in "${WBF_WALK[@]}"; do
     if [ "$stem" = "$1" ] || [ "${_WBF_STATUS[$stem]}" != "done" ]; then WBF_OUT+=("${_WBF_FILE[$stem]}"); fi
-    read -ra children <<< "${_WBF_KIDS[$stem]:-}"
-    for (( i = ${#children[@]} - 1; i >= 0; i-- )); do stack+=("${children[i]}"); done
   done
   [ "${#WBF_OUT[@]}" -ge 2 ]
 }

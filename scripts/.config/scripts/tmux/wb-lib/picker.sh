@@ -360,7 +360,9 @@ _ctrl_x_confirm() {
 _family_edit() {
   local ref="${1:-}"
   wb_task_exists "$ref" || { _wb_hold "this row has no task, so no family to open"; return 0; }
-  cmd_family --edit --task "$ref" || _wb_hold "no family to open"
+  wb_family_members "$(wb_task_stem "$ref")" > /dev/null \
+    || { _wb_hold "$(wb_task_stem "$ref") isn't in a family"; return 0; }
+  cmd_family --edit --task "$ref" || _wb_hold "nvim couldn't open the family"
   return 0
 }
 

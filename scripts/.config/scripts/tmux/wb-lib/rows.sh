@@ -178,20 +178,16 @@ wb_emit_with_agents() {
 # _wb_emit_family <idx> <level> <marker> — row <idx>, then every unconsumed
 # row whose parent is its stem, one level deeper (capped at WB_NEST_MAX).
 # Each row is marked consumed before recursing, so a parent: cycle ends where
-# it closes. The row anchoring a family gets its waiting count as field 14:
-# the root's row, else the first member row emitted, which always opens a
-# block (R12, AE4). Reads the caller's rows/parent_of/stem_of/consumed and
-# idx_of_stem/fam_root/fam_count/fam_marked.
+# it closes. The row anchoring a family (fam_anchor) gets the family's
+# waiting count as field 14. Reads the caller's rows/parent_of/stem_of/
+# consumed and fam_root/fam_count/fam_anchor.
 _wb_emit_family() {
   local idx="$1" level="$2" marker="$3" row next j fr=""
   consumed[$idx]=1
   row="${rows[$idx]}"
   [ -n "$marker" ] && row="$(wb_parent_subrows "$row" "$marker")"
   [ -z "${stem_of[$idx]}" ] || fr="${fam_root[${stem_of[$idx]}]:-}"
-  if [ -n "$fr" ] && [ -z "${fam_marked[$fr]:-}" ] \
-     && { [ -z "${idx_of_stem[$fr]:-}" ] || [ "${idx_of_stem[$fr]}" = "$idx" ]; }; then
-    fam_marked[$fr]=1; row+=$'\t'"${fam_count[$fr]}"
-  fi
+  [ -z "$fr" ] || [ "${fam_anchor[$fr]:-}" != "$idx" ] || row+=$'\t'"${fam_count[$fr]}"
   wb_emit_with_agents "$row" "$level"
   [ -n "${stem_of[$idx]}" ] || return 0
   next=$(( level + 1 )); [ "$next" -le "$WB_NEST_MAX" ] || next="$WB_NEST_MAX"
@@ -272,16 +268,30 @@ _collect_combined_blocks() {
     fi
   done
 
-  # Each family's waiting count, read once per render.
-  local -A fam_root=() fam_count=() fam_marked=()
-  local -a stems=()
-  local fstem froot fcount
+  # Each family's waiting count, read once per render, and the one row that
+  # shows it (R12, AE4): the root's row, else the earliest-created member
+  # row with no live parent (the anchor a sibling group gets), so the tag
+  # stays put however Jet moves between sessions.
+  local -A fam_root=() fam_count=() fam_anchor=() fam_anchor_at=()
+  local -a stems=() fr
+  local fstem froot fcount fat
   for i in "${!rows[@]}"; do [ -z "${stem_of[$i]}" ] || stems+=("${stem_of[$i]}"); done
   if [ "${#stems[@]}" -gt 0 ]; then
     while IFS=$'\t' read -r fstem froot fcount; do
       fam_root[$fstem]="$froot"; fam_count[$froot]="$fcount"
     done < <(wb_family_waiting "${stems[@]}")
   fi
+  for i in "${!rows[@]}"; do
+    [ -n "${stem_of[$i]}" ] && froot="${fam_root[${stem_of[$i]}]:-}" && [ -n "$froot" ] || continue
+    if [ -n "${idx_of_stem[$froot]:-}" ]; then fam_anchor[$froot]="${idx_of_stem[$froot]}"; continue; fi
+    parent="${parent_of[$i]}"
+    [ -z "$parent" ] || [ -z "${idx_of_stem[$parent]:-}" ] || continue
+    wb_tsv_split "${rows[$i]}" fr
+    fat="$(wb_task_get "${fr[7]}" created)"
+    if [ -z "${fam_anchor[$froot]:-}" ] || { [ -n "$fat" ] && { [ -z "${fam_anchor_at[$froot]}" ] || [[ "$fat" < "${fam_anchor_at[$froot]}" ]]; }; }; then
+      fam_anchor[$froot]="$i"; fam_anchor_at[$froot]="$fat"
+    fi
+  done
 
   local -A consumed=() climbed=()
   local j root up anchor anchor_created created
@@ -489,7 +499,7 @@ wb_format_for_display() {
         else if ($9 == "bg")     tag = tag " (bg)"
         base = fit(txt, wn - nch(tag))
         ncell[n] = pad(base tag, wn)
-        if (dt != "" && !hs)
+        if (dt != "" && !hs && nch(base tag) <= wn)   # recolour only a tag pad() left whole
           ncell[n] = substr(ncell[n], 1, length(base)) mg dt rs c substr(ncell[n], length(base) + length(dt) + 1)
         br = $3; sub(/^\[/, "", br); sub(/\]$/, "", br)
         bcell[n] = padtail(br, wb)
