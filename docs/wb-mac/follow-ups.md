@@ -1,6 +1,6 @@
 # Mac wb follow-ups
 
-Last updated 2026-11-04. Three code reviews of `feat/mac-picker-native-status` found the items this page tracked. The bugs, tidy-ups, test gaps and /decide gaps were all fixed on 2026-11-04. What's left are assumptions to watch when Claude Code updates, and one tooling gap. When an item is fixed, delete it from this page.
+Last updated 2026-11-15. Three code reviews of `feat/mac-picker-native-status` found the items this page tracked. The bugs, tidy-ups, test gaps and /decide gaps were all fixed on 2026-11-04. What's left are assumptions to watch when Claude Code updates, and picker changes parked until they show up. The tooling gap (Node too old for the cross-model reviewer) was fixed on 2026-11-15. When an item is fixed, delete it from this page.
 
 ## Fragile assumptions
 
@@ -15,7 +15,3 @@ Two picker changes from the work machine, left out on purpose on 2026-11-12. Por
 
 - **Working while subagents run** (work PR #138). There, a Claude that hands work to background subagents ended its turn at once, so its row showed done while they ran. The fix tracks each subagent with `SubagentStart` and `SubagentStop` hooks. The Mac reads the registry's `busy` instead, and nobody has checked whether that stays busy while subagents run. Port it if a row shows done while its agents are still working.
 - **Agent-count warning.** The work picker's header says "N agents live (warn >= M)". Worth it only if the number of live agents here grows well past the current eight.
-
-## Tooling gaps
-
-- No second AI model has reviewed this code. No cross-model reviewer is installed, and Node 18 is older than the version acpx needs.
