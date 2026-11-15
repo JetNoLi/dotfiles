@@ -1,6 +1,6 @@
 # Dotfiles and AI workflow roadmap
 
-Last updated 2026-11-04. This is the living record of where the dotfiles and the AI workflow are heading. Plans and verdicts live in the files it links to; this page says how they fit together.
+Last updated 2026-11-15. This is the living record of where the dotfiles and the AI workflow are heading. Plans and verdicts live in the files it links to; this page says how they fit together.
 
 ## End state
 
@@ -22,7 +22,7 @@ Rule: an alternative doesn't count as tested until it has a verdict in `docs/wb-
 
 ## Next goal
 
-Set 2026-11-04, once PR #2 is open. **Complete** as of 2026-11-04; the goal after it is coordinators, starting from a brainstorm.
+Set 2026-11-04, once PR #2 is open. **Complete** as of 2026-11-04. The goal after it, coordinators, is built as of 2026-11-15 (below). The next goal is the verdict sitting: about two weeks after PR #2 went into daily use, so around 2026-11-18, fill in the keep-or-drop verdicts in `docs/wb-mac/comparisons.md` sections 1–11 with Jet, then decide the migration area by area.
 
 1. Work through the open items in `docs/wb-mac/follow-ups.md`. **Done** (PRs #6 and #7). What's left there is assumptions to watch and the cross-model reviewer, which needs a newer Node.
 2. Set up GitHub across the personal repos. **Done.** `gh` is logged in on the Mac with a PAT, and ct-events, learning-os, stock-hub and li-serve are pushed as private repos.
@@ -37,7 +37,7 @@ Set 2026-11-04, once PR #2 is open. **Complete** as of 2026-11-04; the goal afte
 | Mac picker with native status | The `wb` picker and `wb new` on `prefix+a`, carved out of wb. Status comes from Claude Code's session data, background sessions are rows, and there is a local `~/tasks` store. | Merged (PR #2); verdicts open | `docs/plans/2026-10-26-0035-feat-mac-picker-native-status-plan.md`, `docs/wb-mac/comparisons.md`, `docs/wb-mac/follow-ups.md` |
 | `/handoff` and `/decide` | One `/handoff` checkpoints and restarts the session clean, hands work to a live task by messaging, or starts a seeded background task. One `/decide` asks a batch of questions in an nvim buffer or on a claude.ai page and records the answers. | Merged (PR #2); verdicts open | `docs/plans/2026-10-30-1353-feat-wb-handoff-and-decide-plan.md`, `docs/wb-mac/comparisons.md` sections 6–10 |
 | Automatic checkpoints | Hooks write draft handoffs into the task record on compact and at the end of a session. | Idea, partly absorbed: `/handoff` already replaces `/wb-save` and `/wb-resume`, and the pick-up hook loads a checkpoint after any `/clear` | Would call the same `wb checkpoint` |
-| Messaging and family coordinators | One coordinator session per family dispatches two or three workers. | Idea; messaging itself is in use for `/handoff <task>` | Builds on background rows from the picker |
+| Family coordinators | The root task's session coordinates its family. Family decisions sit in the root's task file and stay proposed until Jet confirms them; each member keeps a status block. `wb family`, the `/family` skill, a hook that keeps sessions current, and a waiting count in the picker. | Built (PRs #10, #15, #16) and live-checked 2026-11-15 (#17); trial verdict open, judged on the first real family | `docs/plans/2026-11-06-1531-feat-wb-family-coordinators-plan.md`, `docs/wb-mac/comparisons.md` section 12 "Family coordinators instead of `[wb-propagate]` relays" |
 | Realms | The git remote decides which task store a record goes to, and a guard blocks writes across that line. | Idea | Most likely lands with the migration |
 | Go task store | A Go program owns the task store, and bash keeps the tmux and fzf glue. | Planned in the work repo | Replaces the picker plan's store seam |
 | Full migration | Merge the work dotfiles repo into this one. | Decided after two weeks of using `/handoff` and `/decide` | Uses the comparison verdicts |
@@ -65,6 +65,7 @@ Dependencies, in short:
 
 ## Open threads
 
-- `docs/wb-mac/follow-ups.md` now holds only assumptions to watch and the cross-model reviewer, which needs a newer Node.
-- Coordinators get tried on the Mac next. Automatic checkpoints and realms wait.
-- The two-week use of `/handoff` and `/decide` that the migration decision waits on starts once this branch is in daily use.
+- `docs/wb-mac/follow-ups.md` now holds only assumptions to watch and picker changes parked until they show up. The default Node is 22 or newer since 2026-11-15, so the cross-model reviewer (acpx) can run.
+- The coordinators trial needs a family doing real work. The first family only built its own tooling, so the two-week clock starts on the next piece of work that splits into two or three tasks with a shared decision, on either machine.
+- `/handoff` and `/decide` have been in daily use since PR #2 merged on 2026-11-04. Their two weeks end around 2026-11-18, when the verdict sitting is due.
+- Automatic checkpoints and realms wait. The deferred coordinators items (family page, day-start overview) are built on the work side first and ported at verdict time.
