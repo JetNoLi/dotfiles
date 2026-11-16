@@ -137,6 +137,8 @@ On both machines, `ctrl+hjkl` stays with tmux and nvim.
 
 **What to watch.** Whether Option+Tab's different meaning causes mistakes, and whether resize or back-and-forth are worth adding at work.
 
+**Found 2026-11-15.** Windows were left hidden and new ones stacked untiled because AeroSpace wasn't running. `start-at-login` was off, so it stayed down after every reboot. AeroSpace hides a workspace by parking its windows off the bottom-right corner, and without it running those windows stay there. It now starts at login. If windows still go missing while it runs, note the app and what you did.
+
 **Verdict:** open.
 
 ## 12. Family coordinators instead of `[wb-propagate]` relays

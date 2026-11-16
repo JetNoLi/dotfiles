@@ -17,8 +17,9 @@ after-login-command = []
 # Available commands : https://nikitabobko.github.io/AeroSpace/commands
 after-startup-command = []
 
-# Start AeroSpace at login
-start-at-login = false
+# Start AeroSpace at login. With it off, a reboot left the Mac with no tiling
+# and with windows still parked off-screen from hidden workspaces.
+start-at-login = true
 
 # Normalizations. See: https://nikitabobko.github.io/AeroSpace/guide#normalization
 enable-normalization-flatten-containers = true
