@@ -67,6 +67,21 @@ assert "the background agent gets the pick-up prompt" '^--bg -n dotfiles--seeded
 assert "and is still recorded as @primary" '@primary' "$(wb_task_get "$seeded" claude_sessions)"
 assert_eq "its parent is the sending task" dotfiles--fix-thing "$(wb_task_get "$seeded" parent)"
 
+# --- /handoff new in the foreground: the agent runs in the agent window --------------------
+: > "$T/claude.log"; : > "$T/focus.log"; rm -f "$CLAUDE_SESSIONS_DIR"/515151.json
+out="$(printf 'Done: split out\nNext: write the lexer\n' | wb new --handoff --parent dotfiles--fix-thing dotfiles seeded-fg 2>&1)"; code=$?
+assert_eq "wb new --handoff without --bg succeeds" 0 "$code"
+fg_task="$TASKS_DIR/dotfiles--seeded-fg.md"
+assert "the new task is seeded with the checkpoint" '— checkpoint.*Next: write the lexer' "$(tr '\n' ' ' < "$fg_task")"
+assert_eq "with a start marker for its first startup" start "$(cat "$WB_STATE_DIR/pickup/dotfiles--seeded-fg" 2>/dev/null)"
+for _ in $(seq 50); do [ -s "$T/claude.log" ] && break; sleep 0.1; done
+assert_eq "claude starts in the agent pane with the pick-up prompt, not --bg" \
+  "Pick up this task from its /handoff checkpoint." "$(cat "$T/claude.log")"
+assert_eq "no background session is registered" no "$([ -e "$CLAUDE_SESSIONS_DIR/515151.json" ] && echo yes || echo no)"
+assert "it says which tmux window the agent is in" 'dotfiles--seeded-fg:agent' "$out"
+assert_eq "it doesn't switch away from where you are" "" "$(cat "$T/focus.log")"
+assert_eq "its parent is the sending task" dotfiles--fix-thing "$(wb_task_get "$fg_task" parent)"
+
 : > "$T/claude.log"; rm -f "$CLAUDE_SESSIONS_DIR"/515151.json
 wb new --bg dotfiles plain-bg >/dev/null 2>&1
 assert_eq "wb new --bg without --handoff starts the agent with no prompt" "--bg -n dotfiles--plain-bg" "$(cat "$T/claude.log")"
