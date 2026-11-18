@@ -207,11 +207,25 @@ _wb_start_bg() {
   echo "wb new: $session's agent is running in the background ($job) — Enter on its row in the picker attaches"
 }
 
-# cmd_new [--bg [--handoff]] [--parent <stem>] [<repo>] <slug> — worktree
+# _wb_start_fg <session> <worktree> <prompt> — start Claude in the foreground
+# in the session's agent window with its first prompt (wb new --handoff
+# without --bg). The pane drops to a shell when Claude exits, as after a
+# restart, so it never closes under Jet. The caller's client stays put.
+_wb_start_fg() {
+  local session="$1" wt="$2" bin
+  bin="$(command -v claude)" || { echo "wb new: claude is not on PATH" >&2; return 1; }
+  tmux list-windows -t "=$session:" -F '#{window_name}' | grep -qx agent \
+    || tmux new-window -d -t "=$session:" -n agent -c "$wt"
+  tmux respawn-pane -k -t "=$session:agent" -c "$wt" "$(wb_claude_pane_cmd "$bin" "" "$3")" || return 1
+  echo "wb new: $session's agent is running in tmux window $session:agent — Enter on its row in the picker switches to it"
+}
+
+# cmd_new [--bg] [--handoff] [--parent <stem>] [<repo>] <slug> — worktree
 # at <repo>/.worktrees/<slug>, tmux session <repo>--<slug>, and a task
 # record. With only a slug, the repo is the one the shell is in. --handoff
 # (/handoff new, R10) reads a checkpoint from stdin, seeds the task with it
-# and starts the background agent on its Next step without asking.
+# and starts the agent on its Next step without asking: in the session's
+# agent window, or as a background session with --bg.
 cmd_new() {
   local bg=0 handoff=0 seed="" parent="" repo="" slug repo_dir rc stem
   local -a args=()
@@ -222,7 +236,7 @@ cmd_new() {
       --parent)
         case "${2-}" in ''|--*) echo "wb new: --parent requires a value" >&2; return 1 ;; esac
         parent="$2"; shift 2 ;;
-      -h|--help) echo "usage: wb new [--bg [--handoff]] [--parent <repo>--<slug>] [<repo>] <slug>"; return 0 ;;
+      -h|--help) echo "usage: wb new [--bg] [--handoff] [--parent <repo>--<slug>] [<repo>] <slug>"; return 0 ;;
       *) args+=("$1"); shift ;;
     esac
   done
@@ -237,11 +251,10 @@ cmd_new() {
          2) return 1 ;;
          *) echo "wb new: no repo called '$repo' under $WB_REPO_ROOTS" >&2; return 1 ;;
        esac ;;
-    *) echo "usage: wb new [--bg [--handoff]] [--parent <repo>--<slug>] [<repo>] <slug>" >&2; return 1 ;;
+    *) echo "usage: wb new [--bg] [--handoff] [--parent <repo>--<slug>] [<repo>] <slug>" >&2; return 1 ;;
   esac
   [ -n "$slug" ] || { echo "wb new: <slug> must not be empty" >&2; return 1; }
   if [ "$handoff" = 1 ]; then
-    [ "$bg" = 1 ] || { echo "wb new: --handoff needs --bg" >&2; return 1; }
     stem="$repo--$(wb_sanitize "$slug")"
     ! wb_task_exists "$(wb_task_file_for_stem "$stem")" \
       || { echo "wb new: $stem already exists — hand off to it with /handoff $stem" >&2; return 1; }
@@ -261,8 +274,13 @@ cmd_new() {
     wb_task_append_entry "$WB_TASK" checkpoint "$seed"
     wb_lock_release "$WB_TASK"
     wb_pickup_mark "$(wb_task_stem "$WB_TASK")" start
-    _wb_start_bg "$WB_SESSION" "$repo_dir/$(wb_task_get "$WB_TASK" worktree)" "$WB_TASK" \
-      "Pick up this task from its /handoff checkpoint." "" reuse
+    if [ "$bg" = 1 ]; then
+      _wb_start_bg "$WB_SESSION" "$repo_dir/$(wb_task_get "$WB_TASK" worktree)" "$WB_TASK" \
+        "Pick up this task from its /handoff checkpoint." "" reuse
+    else
+      _wb_start_fg "$WB_SESSION" "$repo_dir/$(wb_task_get "$WB_TASK" worktree)" \
+        "Pick up this task from its /handoff checkpoint."
+    fi
   elif [ "$bg" = 1 ]; then
     _wb_start_bg "$WB_SESSION" "$repo_dir/$(wb_task_get "$WB_TASK" worktree)" "$WB_TASK" "" "" reuse
   else

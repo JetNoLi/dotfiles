@@ -1,6 +1,6 @@
 ---
 name: handoff
-description: Checkpoint the current wb task and hand it on. With no target, write a checkpoint and restart this session in a clean context that picks it up; with a task, pass the work to that task's live session; with `new <slug>`, start a seeded background task. Use when Jet types /handoff, or asks to checkpoint, save progress, carry on in a clean context, or pass work to another session.
+description: Checkpoint the current wb task and hand it on. With no target, write a checkpoint and restart this session in a clean context that picks it up; with a task, pass the work to that task's live session; with `new <slug>`, start a seeded task whose agent runs in its own tmux session. Use when Jet types /handoff, or asks to checkpoint, save progress, carry on in a clean context, or pass work to another session.
 argument-hint: "[--keep | <task> | new [<repo>] <slug>]"
 ---
 
@@ -17,7 +17,7 @@ Arguments: `$ARGUMENTS`
 | Arguments | Destination | Sections |
 |---|---|---|
 | none, or `--keep` | this session, after a clean restart | 1, 2, 3 |
-| `new [<repo>] <slug>` | a new background task | 1, 5 |
+| `new [<repo>] <slug>` | a new task, its agent in its own tmux session | 1, 5 |
 | anything else | the live session of that task | 1, 4 |
 
 `new` counts only as the first argument, so a task called `new` is reached as
@@ -119,13 +119,16 @@ The sender keeps going: nothing here clears or stops this session.
 3. Start it from this session's worktree, so the repo defaults to this one:
 
    ```bash
-   ~/.config/scripts/tmux/wb new --bg --handoff --parent <this stem> [<repo>] <slug> <<'ENTRY'
+   ~/.config/scripts/tmux/wb new --handoff --parent <this stem> [<repo>] <slug> <<'ENTRY'
    **Done:** …
    ENTRY
    ```
 
    Leave out `--parent` when this session isn't a wb task. `wb new` makes the
-   worktree, tmux session and task, seeds the checkpoint, and starts a
-   background Claude that begins on the Next step without asking.
-4. Report the new task and its background job id. Its row shows in the
-   picker, and Enter attaches.
+   worktree, tmux session and task, seeds the checkpoint, and starts Claude
+   in the foreground in the new session's `agent` window, where it begins
+   on the Next step without asking. Never pass `--bg`: Jet loses track of
+   background agents. Use it only when Jet asks for a background agent.
+4. Report the new task and the tmux window its agent is in
+   (`<session>:agent`). Its row shows in the picker, and Enter switches to
+   it. This session's client stays where it is.
